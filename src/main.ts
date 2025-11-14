@@ -1,80 +1,291 @@
-import { Plugin, TFile } from 'obsidian';
+/**
+ * Main plugin file for Last Opened Plugin
+ *
+ * This file is the entry point for the plugin. It coordinates initialization
+ * and bootstraps all the other modules (settings, timestamps, file handling, events, commands).
+ *
+ * Architecture overview for beginners:
+ * main.ts (this file) is like the "conductor" that brings together all the
+ * other modules and makes them work together. The actual logic lives in
+ * separate files so each one has a single responsibility and is easier to understand.
+ *
+ * The Plugin class extends Obsidian's Plugin base class and provides
+ * access to Obsidian's API (like the file manager and workspace).
+ */
 
-interface LastOpenedSettings {
-	dateFormat: string;
+import { Plugin, PluginSettingTab, Setting, App, TFile } from 'obsidian';
+import {
+	LastOpenedSettings,
+	DEFAULT_SETTINGS,
+	validateSettings
+} from './settings';
+import { createTimestampGenerator } from './timestamp';
+import { createFileHandler } from './fileHandler';
+import { EventHandler } from './eventHandler';
+import { setupCommands } from './commands';
+
+/**
+ * Temporary file handler interface for initialization
+ * Used before the real FileHandler is available
+ */
+interface TempFileHandler {
+	updateDateOpened: (file: TFile) => Promise<void>;
+	updateDateClosed: (file: TFile) => Promise<void>;
 }
 
-const DEFAULT_SETTINGS: LastOpenedSettings = {
-	dateFormat: 'YYYY-MM-DDTHH:mm:ss'
-}
-
+/**
+ * LastOpenedPlugin - The main plugin class
+ *
+ * This is the entry point for Obsidian. The onload() method is called
+ * when the plugin starts, and onunload() is called when it stops.
+ *
+ * For beginners: Think of this like the "main" function in other programs.
+ * It's where everything gets set up.
+ */
 export default class LastOpenedPlugin extends Plugin {
+	/** Stores the current plugin settings */
 	settings: LastOpenedSettings;
-	private lastActiveFile: TFile | null = null;
 
-	async onload() {
+	/** Event handler instance for managing file events */
+	private eventHandler: EventHandler | null = null;
+
+	/**
+	 * onload() is called when Obsidian loads the plugin
+	 * This is where we initialize everything
+	 */
+	async onload(): Promise<void> {
+		// Step 1: Load settings from persistent storage
 		await this.loadSettings();
 
-		// Register event when a file is opened
-		this.registerEvent(
-			this.app.workspace.on('file-open', (file: TFile | null) => {
-				// Update close time for the previously open file
-				if (this.lastActiveFile && file !== this.lastActiveFile) {
-					this.updateDateLastClosed(this.lastActiveFile);
-				}
-				
-				// Update open time for the newly opened file
-				if (file) {
-					this.updateDateLastOpened(file);
-					this.lastActiveFile = file;
-				}
-			})
+		// Step 2: Create our helper objects
+		// These are "dependencies" - objects that other objects need to work
+		const timestampGenerator = createTimestampGenerator(this.settings);
+
+		// Step 3: Create a temporary fileHandler for the eventHandler (will be replaced)
+		const tempFileHandler: TempFileHandler = {
+			updateDateOpened: () => Promise.resolve(),
+			updateDateClosed: () => Promise.resolve()
+		};
+
+		// Step 4: Create event handler
+		const eventHandler = new EventHandler(this, tempFileHandler);
+		this.eventHandler = eventHandler;
+
+		// Step 5: Create the real file handler with the event handler
+		const fileHandler = createFileHandler(
+			this.app,
+			this.settings,
+			timestampGenerator,
+			eventHandler
 		);
 
-		// Handle when Obsidian is about to quit
-		this.app.workspace.onLayoutReady(() => {
-			window.addEventListener('beforeunload', () => {
-				if (this.lastActiveFile) {
-					this.updateDateLastClosed(this.lastActiveFile);
-				}
-			});
-		});
+		// Step 6: Update the event handler to use the real file handler
+		eventHandler.setFileHandler(fileHandler);
+
+		// Step 7: Set up event listeners (what to do when files open/close)
+		eventHandler.registerEvents();
+
+		// Step 8: Load persisted opening times and clean up
+		await eventHandler.loadOpeningTimes();
+		eventHandler.cleanupStaleData();
+
+		// Step 9: Register user commands (what users can do via command palette)
+		setupCommands(this, fileHandler);
+
+		// Step 10: Add settings tab
+		this.addSettingTab(new LastOpenedSettingTab(this.app, this));
+
+		console.log('Last Opened Plugin loaded');
 	}
 
-	async updateDateLastOpened(file: TFile) {
-		await this.updateFrontmatter(file, 'date_last_opened');
+	/**
+	 * onunload() is called when the plugin is disabled or Obsidian closes
+	 * Save opening times to persist across sessions
+	 */
+	async onunload(): Promise<void> {
+		// Save opening times before unloading
+		if (this.eventHandler) {
+			await this.eventHandler.saveOpeningTimes();
+		}
+		console.log('Last Opened Plugin unloaded');
 	}
 
-	async updateDateLastClosed(file: TFile) {
-		await this.updateFrontmatter(file, 'date_last_closed');
+	/**
+	 * Load settings from Obsidian's plugin storage
+	 * Merges stored settings with defaults so missing keys use defaults
+	 *
+	 * For beginners: Obsidian stores plugin data as JSON in a hidden directory.
+	 * This method reads that data and combines it with our defaults.
+	 */
+	private async loadSettings(): Promise<void> {
+		// Get stored data (or empty object if no data exists)
+		const storedData = await this.loadData();
+
+		// Merge: use stored values, fall back to defaults for missing keys
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, storedData);
+
+		// Validate settings in case they got corrupted somehow
+		if (!validateSettings(this.settings)) {
+			console.warn(
+				'Settings validation failed, using defaults. Stored data:',
+				storedData
+			);
+			this.settings = DEFAULT_SETTINGS;
+		}
 	}
 
-	async updateFrontmatter(file: TFile, property: string) {
-		const timestamp = this.getCurrentTimestamp();
-		
-		await this.app.fileManager.processFrontMatter(file, (frontmatter: any) => {
-			frontmatter[property] = timestamp;
-		});
-	}
-
-	getCurrentTimestamp(): string {
-		const now = new Date();
-		// Format: YYYY-MM-DDTHH:mm:ss
-		const year = now.getFullYear();
-		const month = ('0' + (now.getMonth() + 1)).slice(-2);
-		const day = ('0' + now.getDate()).slice(-2);
-		const hours = ('0' + now.getHours()).slice(-2);
-		const minutes = ('0' + now.getMinutes()).slice(-2);
-		const seconds = ('0' + now.getSeconds()).slice(-2);
-		
-		return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
-	}
-
-	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
-	}
-
-	async saveSettings() {
+	/**
+	 * Save settings to Obsidian's plugin storage
+	 * This persists the settings so they survive app restarts
+	 *
+	 * Note: This method isn't called directly in the current version,
+	 * but it's here for future features like a settings UI
+	 */
+	async saveSettings(): Promise<void> {
 		await this.saveData(this.settings);
+	}
+}
+
+/**
+ * Settings tab for configuring the Last Opened plugin
+ * Provides a UI for users to customize YAML keys, time formats, and tracking options
+ */
+class LastOpenedSettingTab extends PluginSettingTab {
+	plugin: LastOpenedPlugin;
+
+	constructor(app: App, plugin: LastOpenedPlugin) {
+		super(app, plugin);
+		this.plugin = plugin;
+	}
+
+	display(): void {
+		const { containerEl } = this;
+		containerEl.empty();
+
+		containerEl.createEl('h2', { text: 'Last Opened Plugin Settings' });
+
+		// YAML Keys section
+		containerEl.createEl('h3', { text: 'YAML Keys' });
+
+		new Setting(containerEl)
+			.setName('Opened Key')
+			.setDesc('YAML key name for tracking when notes are opened')
+			.addText(text => text
+				.setPlaceholder('date_last_opened')
+				.setValue(this.plugin.settings.dateOpenedKey)
+				.onChange(async (value) => {
+					// Handle empty values gracefully - use defaults
+					const trimmed = value.trim();
+					const finalValue = trimmed || 'date_last_opened'; // Default if empty
+
+					// Check for duplicate keys (only if both are non-empty)
+					if (finalValue && finalValue === this.plugin.settings.dateClosedKey) {
+						text.inputEl.style.borderColor = 'orange';
+						text.inputEl.title = 'Opened and closed keys should be different';
+					} else {
+						text.inputEl.style.borderColor = '';
+						text.inputEl.title = '';
+					}
+
+					this.plugin.settings.dateOpenedKey = finalValue;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('Closed Key')
+			.setDesc('YAML key name for tracking when notes are closed')
+			.addText(text => text
+				.setPlaceholder('date_last_closed')
+				.setValue(this.plugin.settings.dateClosedKey)
+				.onChange(async (value) => {
+					// Handle empty values gracefully - use defaults
+					const trimmed = value.trim();
+					const finalValue = trimmed || 'date_last_closed'; // Default if empty
+
+					// Check for duplicate keys (only if both are non-empty)
+					if (finalValue && finalValue === this.plugin.settings.dateOpenedKey) {
+						text.inputEl.style.borderColor = 'orange';
+						text.inputEl.title = 'Opened and closed keys should be different';
+					} else {
+						text.inputEl.style.borderColor = '';
+						text.inputEl.title = '';
+					}
+
+					this.plugin.settings.dateClosedKey = finalValue;
+					await this.plugin.saveSettings();
+				}));
+
+		// Time Format section
+		containerEl.createEl('h3', { text: 'Time Format' });
+
+		new Setting(containerEl)
+			.setName('Date Format')
+			.setDesc('Format for timestamps (moment.js style)')
+			.addText(text => text
+				.setPlaceholder('YYYY-MM-DDTHH:mm:ssZ')
+				.setValue(this.plugin.settings.dateFormat)
+				.onChange(async (value) => {
+					// Handle empty values gracefully - use default ISO format
+					const trimmed = value.trim();
+					const finalValue = trimmed || 'YYYY-MM-DDTHH:mm:ssZ'; // Default ISO format
+
+					// Basic validation - check for common required components (only warn, don't prevent)
+					if (finalValue !== 'YYYY-MM-DDTHH:mm:ssZ') { // Don't warn about the default
+						if (!finalValue.includes('YYYY') && !finalValue.includes('YY')) {
+							text.inputEl.style.borderColor = 'orange';
+							text.inputEl.title = 'Format should include year (YYYY or YY)';
+						} else if (!finalValue.includes('MM') && !finalValue.includes('M')) {
+							text.inputEl.style.borderColor = 'orange';
+							text.inputEl.title = 'Format should include month (MM or M)';
+						} else if (!finalValue.includes('DD') && !finalValue.includes('D')) {
+							text.inputEl.style.borderColor = 'orange';
+							text.inputEl.title = 'Format should include day (DD or D)';
+						} else {
+							text.inputEl.style.borderColor = '';
+							text.inputEl.title = '';
+						}
+					} else {
+						text.inputEl.style.borderColor = '';
+						text.inputEl.title = '';
+					}
+
+					this.plugin.settings.dateFormat = finalValue;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('Timezone')
+			.setDesc('Timezone for timestamps')
+			.addDropdown(dropdown => dropdown
+				.addOption('local', 'Local time with offset')
+				.addOption('utc', 'UTC time')
+				.setValue(this.plugin.settings.timezone)
+				.onChange(async (value: 'local' | 'utc') => {
+					this.plugin.settings.timezone = value;
+					await this.plugin.saveSettings();
+				}));
+
+		// Tracking Options section
+		containerEl.createEl('h3', { text: 'Tracking Options' });
+
+		new Setting(containerEl)
+			.setName('Track Openings')
+			.setDesc('Record timestamps when notes are opened')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.trackOpened)
+				.onChange(async (value) => {
+					this.plugin.settings.trackOpened = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('Track Closings')
+			.setDesc('Record timestamps when notes are closed')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.trackClosed)
+				.onChange(async (value) => {
+					this.plugin.settings.trackClosed = value;
+					await this.plugin.saveSettings();
+				}));
 	}
 }
