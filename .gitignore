@@ -1,0 +1,12 @@
+# Logs
+*.log
+
+# npm
+node_modules
+
+# Build
+main.js
+*.js.map
+
+# macOS
+.DS_Store
