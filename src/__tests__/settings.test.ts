@@ -1,0 +1,45 @@
+import { validateSettings, DEFAULT_SETTINGS } from '../settings';
+
+describe('Settings', () => {
+  describe('validateSettings', () => {
+    it('should return true for valid settings', () => {
+      const validSettings = { ...DEFAULT_SETTINGS };
+      expect(validateSettings(validSettings)).toBe(true);
+    });
+
+    it('should return false for null', () => {
+      expect(validateSettings(null)).toBe(false);
+    });
+
+    it('should return false for non-object', () => {
+      expect(validateSettings('string')).toBe(false);
+      expect(validateSettings(123)).toBe(false);
+    });
+
+    it('should return false if missing required keys', () => {
+      const invalidSettings = { ...DEFAULT_SETTINGS };
+      delete (invalidSettings as any).dateOpenedKey;
+      expect(validateSettings(invalidSettings)).toBe(false);
+    });
+  });
+
+  describe('DEFAULT_SETTINGS', () => {
+    it('should have all required properties', () => {
+      expect(DEFAULT_SETTINGS).toHaveProperty('dateOpenedKey');
+      expect(DEFAULT_SETTINGS).toHaveProperty('dateClosedKey');
+      expect(DEFAULT_SETTINGS).toHaveProperty('dateFormat');
+      expect(DEFAULT_SETTINGS).toHaveProperty('trackOpened');
+      expect(DEFAULT_SETTINGS).toHaveProperty('trackClosed');
+      expect(DEFAULT_SETTINGS).toHaveProperty('timezone');
+    });
+
+    it('should have sensible default values', () => {
+      expect(DEFAULT_SETTINGS.dateOpenedKey).toBe('date_last_opened');
+      expect(DEFAULT_SETTINGS.dateClosedKey).toBe('date_last_closed');
+      expect(DEFAULT_SETTINGS.dateFormat).toBe('YYYY-MM-DDTHH:mm:ssZ');
+      expect(DEFAULT_SETTINGS.trackOpened).toBe(true);
+      expect(DEFAULT_SETTINGS.trackClosed).toBe(true);
+      expect(DEFAULT_SETTINGS.timezone).toBe('local');
+    });
+  });
+});
