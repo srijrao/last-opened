@@ -24,6 +24,17 @@ module.exports = {
     'prefer-const': 'error',
     'no-var': 'error'
   },
+  overrides: [
+    {
+      files: ['src/__tests__/**/*.ts'],
+      env: {
+        jest: true
+      },
+      rules: {
+        '@typescript-eslint/no-explicit-any': 'off'
+      }
+    }
+  ],
   ignorePatterns: [
     'node_modules/',
     'main.js',

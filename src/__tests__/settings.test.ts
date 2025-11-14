@@ -18,7 +18,7 @@ describe('Settings', () => {
 
     it('should return false if missing required keys', () => {
       const invalidSettings = { ...DEFAULT_SETTINGS };
-      delete (invalidSettings as any).dateOpenedKey;
+      delete (invalidSettings as Record<string, unknown>).dateOpenedKey;
       expect(validateSettings(invalidSettings)).toBe(false);
     });
   });

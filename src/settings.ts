@@ -42,12 +42,12 @@ export interface LastOpenedSettings {
  * Default settings that apply when the user hasn't configured anything
  *
  * These defaults match what's described in the README.md
- * The ISO 8601 format with local offset provides good readability and compatibility
+ * The ISO 8601 format with local offset provides good readability, timezone info, and compatibility
  */
 export const DEFAULT_SETTINGS: LastOpenedSettings = {
 	dateOpenedKey: 'date_last_opened',
 	dateClosedKey: 'date_last_closed',
-	dateFormat: 'YYYY-MM-DDTHH:mm:ssZ', // ISO 8601 with local offset
+	dateFormat: 'YYYY-MM-DDTHH:mm:ssZ', // ISO 8601 with local timezone offset
 	trackOpened: true,
 	trackClosed: true,
 	timezone: 'local'

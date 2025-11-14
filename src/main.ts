@@ -287,5 +287,22 @@ class LastOpenedSettingTab extends PluginSettingTab {
 					this.plugin.settings.trackClosed = value;
 					await this.plugin.saveSettings();
 				}));
+
+		// Reset to defaults section
+		containerEl.createEl('h3', { text: 'Reset Settings' });
+
+		new Setting(containerEl)
+			.setName('Reset to Defaults')
+			.setDesc('Reset all settings to their default values')
+			.addButton(button => button
+				.setButtonText('Reset')
+				.setWarning()
+				.onClick(async () => {
+					// Reset settings to defaults
+					this.plugin.settings = { ...DEFAULT_SETTINGS };
+					await this.plugin.saveSettings();
+					// Refresh the settings display
+					this.display();
+				}));
 	}
 }

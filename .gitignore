@@ -9,6 +9,7 @@ main.js
 *.js.map
 dist/
 build/
+data.json
 
 # TypeScript
 *.tsbuildinfo

@@ -26,12 +26,12 @@ export class TimestampGenerator {
 	 * Respects the user's format and timezone settings
 	 *
 	 * @param date - Optional Date object to format (defaults to current time)
-	 * @returns Formatted timestamp string (e.g., "2025-11-14T10:30:45-05:00")
+	 * @returns Formatted timestamp string (e.g., "2025-11-14 15:30:45")
 	 *
 	 * Example for beginners:
-	 * If it's 3:30 PM and the user wants ISO 8601 format in their local timezone,
-	 * this returns something like "2025-11-14T15:30:45-05:00"
-	 * The "-05:00" part tells us it's 5 hours behind UTC.
+	 * If it's 3:30 PM and the user wants local datetime format,
+	 * this returns something like "2025-11-14 15:30:45"
+	 * This format is commonly recognized as datetime in various systems.
 	 *
 	 * You can also pass a specific date: generateTimestamp(somePastDate)
 	 */
@@ -39,9 +39,15 @@ export class TimestampGenerator {
 		const targetDate = date || new Date();
 
 		switch (this.settings.dateFormat) {
-			// ISO 8601 formats (very standard, used across the web)
+			// ISO 8601 with local timezone offset (standard, preserves timezone, widely recognized)
 			case 'YYYY-MM-DDTHH:mm:ssZ':
 				return this.toISO8601WithOffset(targetDate);
+
+			// Local datetime with timezone offset (readable alternative)
+			case 'YYYY-MM-DD HH:mm:ssZ':
+				return this.toLocalDateTimeWithOffset(targetDate);
+
+			// ISO 8601 formats (very standard, used across the web)
 			case 'YYYY-MM-DDTHH:mm:ss':
 				return this.toISO8601Local(targetDate);
 
@@ -49,7 +55,7 @@ export class TimestampGenerator {
 			case 'UTC':
 				return targetDate.toISOString();
 
-			// Fallback to a reasonable default if user has custom format
+			// Fallback to ISO 8601 with offset if user has custom format
 			default:
 				return this.toISO8601WithOffset(targetDate);
 		}
@@ -106,6 +112,38 @@ export class TimestampGenerator {
 		const seconds = String(date.getSeconds()).padStart(2, '0');
 
 		return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+	}
+
+	/**
+	 * Helper: Convert date to local datetime format with timezone offset
+	 * Format: 2025-11-14 15:30:45-06:00
+	 *
+	 * @param date - JavaScript Date object
+	 * @returns Local datetime string with timezone offset
+	 *
+	 * This format is human-readable, includes timezone info, and commonly
+	 * auto-recognized as datetime in systems like Obsidian's property system.
+	 */
+	private toLocalDateTimeWithOffset(date: Date): string {
+		const offsetMs = date.getTimezoneOffset() * 60000;
+		const localDate = new Date(date.getTime() - offsetMs);
+
+		// Format local time
+		const year = localDate.getFullYear();
+		const month = String(localDate.getMonth() + 1).padStart(2, '0');
+		const day = String(localDate.getDate()).padStart(2, '0');
+		const hours = String(localDate.getHours()).padStart(2, '0');
+		const minutes = String(localDate.getMinutes()).padStart(2, '0');
+		const seconds = String(localDate.getSeconds()).padStart(2, '0');
+
+		// Calculate offset (e.g., "-06:00" for CDT)
+		const offsetMinutes = -date.getTimezoneOffset();
+		const offsetHours = Math.floor(Math.abs(offsetMinutes) / 60);
+		const offsetMins = Math.abs(offsetMinutes) % 60;
+		const sign = offsetMinutes >= 0 ? '+' : '-';
+		const offset = `${sign}${String(offsetHours).padStart(2, '0')}:${String(offsetMins).padStart(2, '0')}`;
+
+		return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}${offset}`;
 	}
 }
 
