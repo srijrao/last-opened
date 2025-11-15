@@ -25,8 +25,8 @@ describe('TimestampGenerator', () => {
       const utcSettings = { ...DEFAULT_SETTINGS, timezone: 'utc' as const };
       const utcGenerator = new TimestampGenerator(utcSettings);
       const timestamp = utcGenerator.generateTimestamp();
-      // Currently, timezone setting is not implemented, so it still uses local
-      expect(timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$/);
+      // Should use Z for UTC timezone
+      expect(timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
     });
   });
 

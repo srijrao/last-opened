@@ -34,6 +34,12 @@ export class EventHandler {
 	 */
 	private fileOpeningTimes: Map<string, Date> = new Map();
 
+	/**
+	 * Track which files are currently open in the workspace
+	 * Used to detect actual file openings and closings, not just focus changes
+	 */
+	private currentlyOpenFiles: Set<string> = new Set();
+
 	constructor(private plugin: Plugin, private fileHandler: FileHandlerLike) {}
 
 	/**
@@ -49,15 +55,15 @@ export class EventHandler {
 	 * Called once when the plugin loads
 	 *
 	 * This includes:
-	 * - When a file is opened (file-open event)
+	 * - When the layout changes (files opened/closed)
 	 * - When the application is about to close (beforeunload event)
 	 */
 	registerEvents(): void {
-		// Register the file-open event
-		// This fires when the user opens a note in Obsidian
+		// Register the layout-change event
+		// This fires when the workspace layout changes, such as when files are opened or closed
 		this.plugin.registerEvent(
-			this.plugin.app.workspace.on('file-open', (file: TFile | null) => {
-				this.handleFileOpen(file);
+			this.plugin.app.workspace.on('layout-change', () => {
+				this.handleLayoutChange();
 			})
 		);
 
@@ -71,41 +77,60 @@ export class EventHandler {
 	}
 
 	/**
-	 * Handler for when a file is opened
+	 * Handler for when the workspace layout changes
 	 *
 	 * Logic:
-	 * 1. If there was a previously open file, mark it as closed
-	 * 2. Record the opening time for the new file (for all files, not just tracked ones)
-	 * 3. Update the newly opened file with an "opened" timestamp (if it has keys)
-	 * 4. Remember this file so we can close it later
+	 * 1. Get the current set of open files from all leaves
+	 * 2. Compare with previously known open files
+	 * 3. Record opening timestamps for newly opened files
+	 * 4. Record closing timestamps for newly closed files
+	 * 5. Update the tracked set of open files
 	 *
-	 * @param file - The file that was just opened (null if no file is active)
-	 *
-	 * For beginners: Think of this as the "door opening" event.
-	 * When someone opens a new door (file), we close the old one and record the new opening.
+	 * This ensures we only record actual file openings and closings,
+	 * not focus changes between already open files.
 	 */
-	private async handleFileOpen(file: TFile | null): Promise<void> {
+	private async handleLayoutChange(): Promise<void> {
 		try {
-			// Step 1: If there was a previous file and it's different from the new one, close it
-			if (this.lastActiveFile && file !== this.lastActiveFile) {
-				await this.fileHandler.updateDateClosed(this.lastActiveFile);
+			// Get currently open files from all workspace leaves
+			const currentOpenFiles = new Set<string>();
+			this.plugin.app.workspace.iterateAllLeaves((leaf) => {
+				const file = leaf.view.getState().file;
+				if (file && typeof file === 'string') {
+					currentOpenFiles.add(file);
+				}
+			});
+
+			// Find files that were opened (in current but not in previous)
+			const newlyOpened = new Set(
+				[...currentOpenFiles].filter(file => !this.currentlyOpenFiles.has(file))
+			);
+
+			// Find files that were closed (in previous but not in current)
+			const newlyClosed = new Set(
+				[...this.currentlyOpenFiles].filter(file => !currentOpenFiles.has(file))
+			);
+
+			// Record opening times and update frontmatter for newly opened files
+			for (const filePath of newlyOpened) {
+				const file = this.plugin.app.vault.getAbstractFileByPath(filePath) as TFile;
+				if (file && file instanceof TFile) {
+					this.fileOpeningTimes.set(filePath, new Date());
+					await this.fileHandler.updateDateOpened(file);
+				}
 			}
 
-			// Step 2: Record opening time for the new file (always, even if no keys)
-			if (file) {
-				this.fileOpeningTimes.set(file.path, new Date());
+			// Record closing times for newly closed files
+			for (const filePath of newlyClosed) {
+				const file = this.plugin.app.vault.getAbstractFileByPath(filePath) as TFile;
+				if (file && file instanceof TFile) {
+					await this.fileHandler.updateDateClosed(file);
+				}
 			}
 
-			// Step 3: If a file is now open, record the opening time in YAML (if it has keys)
-			if (file) {
-				await this.fileHandler.updateDateOpened(file);
-				this.lastActiveFile = file; // Remember this for later
-			} else {
-				// No file is open anymore
-				this.lastActiveFile = null;
-			}
+			// Update the tracked set of open files
+			this.currentlyOpenFiles = currentOpenFiles;
 		} catch (error) {
-			console.error('Last Opened Plugin: Error handling file open', error);
+			console.error('Last Opened Plugin: Error handling layout change', error);
 		}
 	}
 
@@ -188,15 +213,18 @@ export class EventHandler {
 
 	/**
 	 * Handler for when the application is closing
-	 * Ensures we record the close time for the currently open file
+	 * Ensures we record the close time for all currently open files
 	 *
 	 * This is important for the accuracy of "date_last_closed"
-	 * Even if the user force-closes Obsidian, we try to save the close timestamp
+	 * Even if the user force-closes Obsidian, we try to save the close timestamps
 	 */
 	private async handleApplicationClose(): Promise<void> {
 		try {
-			if (this.lastActiveFile) {
-				await this.fileHandler.updateDateClosed(this.lastActiveFile);
+			for (const filePath of this.currentlyOpenFiles) {
+				const file = this.plugin.app.vault.getAbstractFileByPath(filePath) as TFile;
+				if (file && file instanceof TFile) {
+					await this.fileHandler.updateDateClosed(file);
+				}
 			}
 		} catch (error) {
 			console.error(

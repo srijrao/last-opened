@@ -125,7 +125,7 @@ Contains the `EventHandler` class which:
 - `handleApplicationClose()` - Logic for when Obsidian closes
 
 **Events this listens for:**
-- `file-open` - User opens a note (emitted by Obsidian)
+- `layout-change` - Workspace layout changes, such as files being opened or closed (emitted by Obsidian)
 - `beforeunload` - Browser is closing (catches force-quit scenarios)
 
 **Key concepts for beginners:**
@@ -178,18 +178,16 @@ Sets up Commands (listens for user requests)
          ↓
 Plugin is ready!
 
-When user opens a file:
-  EventHandler detects file-open event
+When the workspace layout changes (file opened/closed):
+  EventHandler detects layout-change event
          ↓
-  Calls FileHandler.updateDateOpened()
+  Compares current open files to previously tracked open files
          ↓
-  FileHandler calls TimestampGenerator for current time
+  Records opening timestamps for newly opened files
          ↓
-  FileHandler checks if file has our YAML keys
+  Records closing timestamps for newly closed files
          ↓
-  If yes, updates the YAML with new timestamp
-         ↓
-  Done!
+  Updates the tracked set of open files
 ```
 
 ---
@@ -352,8 +350,8 @@ other_field: your other metadata
 
 ### The timestamps will update automatically
 
-- **date_last_opened** updates every time you open the note
-- **date_last_closed** updates when you switch to another note or close Obsidian
+- **date_last_opened** updates when you first open a note in the current Obsidian session
+- **date_last_closed** updates when you close the last tab of a note or close Obsidian
 
 ### Accurate timestamp recording
 

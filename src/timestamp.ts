@@ -62,16 +62,20 @@ export class TimestampGenerator {
 	}
 
 	/**
-	 * Helper: Convert date to ISO 8601 format with local timezone offset
-	 * Format: 2025-11-14T15:30:45-05:00
+	 * Helper: Convert date to ISO 8601 format with local timezone offset (or UTC with Z)
+	 * Format: 2025-11-14T15:30:45-05:00 or 2025-11-14T20:30:45Z
 	 *
 	 * @param date - JavaScript Date object
-	 * @returns ISO 8601 string with local timezone offset
+	 * @returns ISO 8601 string with timezone info
 	 *
-	 * Why this format? It's readable AND includes timezone info,
-	 * so you know exactly when it was in the local context.
+	 * Uses Z for UTC or offset for local time based on settings.
 	 */
 	private toISO8601WithOffset(date: Date): string {
+		// If timezone is set to UTC, return ISO string with Z
+		if (this.settings.timezone === 'utc') {
+			return date.toISOString();
+		}
+
 		const offsetMs = date.getTimezoneOffset() * 60000;
 		const localDate = new Date(date.getTime() - offsetMs);
 
@@ -115,16 +119,30 @@ export class TimestampGenerator {
 	}
 
 	/**
-	 * Helper: Convert date to local datetime format with timezone offset
-	 * Format: 2025-11-14 15:30:45-06:00
+	 * Helper: Convert date to local datetime format with timezone offset (or UTC)
+	 * Format: 2025-11-14 15:30:45-06:00 or 2025-11-14 20:30:45Z
 	 *
 	 * @param date - JavaScript Date object
-	 * @returns Local datetime string with timezone offset
+	 * @returns Local datetime string with timezone info
 	 *
 	 * This format is human-readable, includes timezone info, and commonly
 	 * auto-recognized as datetime in systems like Obsidian's property system.
 	 */
 	private toLocalDateTimeWithOffset(date: Date): string {
+		// If timezone is set to UTC, return UTC datetime with Z
+		if (this.settings.timezone === 'utc') {
+			const utcString = date.toISOString();
+			// Convert to format like 2025-11-14 20:30:45Z
+			const utcDate = new Date(utcString);
+			const year = utcDate.getUTCFullYear();
+			const month = String(utcDate.getUTCMonth() + 1).padStart(2, '0');
+			const day = String(utcDate.getUTCDate()).padStart(2, '0');
+			const hours = String(utcDate.getUTCHours()).padStart(2, '0');
+			const minutes = String(utcDate.getUTCMinutes()).padStart(2, '0');
+			const seconds = String(utcDate.getUTCSeconds()).padStart(2, '0');
+			return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}Z`;
+		}
+
 		const offsetMs = date.getTimezoneOffset() * 60000;
 		const localDate = new Date(date.getTime() - offsetMs);
 

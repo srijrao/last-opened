@@ -3,7 +3,7 @@ import { App } from 'obsidian';
 
 describe('LastOpenedPlugin System Test', () => {
   let mockApp: App;
-  let mockManifest: { id: string; version: string };
+  let mockManifest: any;
   let plugin: LastOpenedPlugin;
 
   beforeEach(() => {
