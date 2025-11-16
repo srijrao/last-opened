@@ -288,6 +288,18 @@ class LastOpenedSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
+		new Setting(containerEl)
+			.setName('History Depth')
+			.setDesc('How many past timestamps to keep for each key (1-5)')
+			.addSlider(slider => slider
+				.setLimits(1, 5, 1)
+				.setValue(this.plugin.settings.historyDepth)
+				.setDynamicTooltip()
+				.onChange(async (value) => {
+					this.plugin.settings.historyDepth = value;
+					await this.plugin.saveSettings();
+				}));
+
 		// Reset to defaults section
 		containerEl.createEl('h3', { text: 'Reset Settings' });
 

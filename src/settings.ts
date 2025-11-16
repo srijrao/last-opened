@@ -36,6 +36,9 @@ export interface LastOpenedSettings {
 	 * IANA timezone names like 'America/New_York' are also supported
 	 */
 	timezone: 'local' | 'utc' | string;
+	
+	/** How many historical entries to keep for each tracked key (1 = single value) */
+	historyDepth: number;
 }
 
 /**
@@ -50,7 +53,8 @@ export const DEFAULT_SETTINGS: LastOpenedSettings = {
 	dateFormat: 'YYYY-MM-DDTHH:mm:ssZ', // ISO 8601 with local timezone offset
 	trackOpened: true,
 	trackClosed: true,
-	timezone: 'local'
+	timezone: 'local',
+	historyDepth: 1
 };
 
 /**
@@ -76,8 +80,19 @@ export function validateSettings(settings: unknown): boolean {
 		'dateFormat',
 		'trackOpened',
 		'trackClosed',
-		'timezone'
+		'timezone',
+		'historyDepth'
 	];
 
-	return requiredKeys.every(key => key in settings);
+	if (!requiredKeys.every(key => key in settings)) {
+		return false;
+	}
+
+	// Additional type checks
+	const s = settings as Record<string, unknown>;
+	if (typeof s.historyDepth !== 'number' || s.historyDepth < 1 || s.historyDepth > 5) {
+		return false;
+	}
+
+	return true;
 }

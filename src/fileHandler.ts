@@ -84,19 +84,93 @@ export class FileHandler {
 			if (keyType === 'both' || keyType === 'opened') {
 				const storedOpeningTime = this.eventHandler.getFileOpeningTime(file);
 				if (storedOpeningTime) {
-					// Use the stored opening time (when the file was actually opened)
 					openedTimestamp = this.timestampGenerator.generateTimestamp(storedOpeningTime);
 				} else {
-					// Fallback to current time if no stored time (shouldn't happen in normal use)
 					openedTimestamp = this.timestampGenerator.generateTimestamp();
 				}
-				frontmatter[this.settings.dateOpenedKey] = openedTimestamp;
+
+				// Respect historyDepth: single string if 1, otherwise numbered keys
+			// Allow per-file override: `<baseKey>_history` numeric in frontmatter
+			// Cap at 5 for memory management
+			let depth = Math.min(5, Math.max(1, this.settings.historyDepth || 1));
+			const overrideKey = `${this.settings.dateOpenedKey}_history`;
+				if (overrideKey in frontmatter) {
+					const ov = frontmatter[overrideKey];
+					const maybeNum = typeof ov === 'number' ? ov : parseInt(String(ov), 10);
+					if (!Number.isNaN(maybeNum) && maybeNum >= 1) {
+						depth = Math.min(5, maybeNum);
+					}
+				}
+				if (depth === 1) {
+					frontmatter[this.settings.dateOpenedKey] = openedTimestamp;
+				} else {
+					// Shift existing numbered keys up and set _1
+					for (let i = depth; i >= 2; i--) {
+						const prevKey = i === 2 ? `${this.settings.dateOpenedKey}_1` : `${this.settings.dateOpenedKey}_${i - 1}`;
+						const targetKey = `${this.settings.dateOpenedKey}_${i}`;
+						if (prevKey in frontmatter) {
+							(frontmatter as Record<string, unknown>)[targetKey] = (frontmatter as Record<string, unknown>)[prevKey];
+						} else {
+							delete (frontmatter as Record<string, unknown>)[targetKey];
+						}
+					}
+				(frontmatter as Record<string, unknown>)[`${this.settings.dateOpenedKey}_1`] = openedTimestamp;
+				// Always set base key to newest
+				(frontmatter as Record<string, unknown>)[this.settings.dateOpenedKey] = openedTimestamp;
+
+				// Clean up any numbered keys beyond the per-file depth
+					for (const key of Object.keys(frontmatter)) {
+						const m = key.match(new RegExp(`^${this.settings.dateOpenedKey}_(\\d+)$`));
+						if (m) {
+							const idx = parseInt(m[1], 10);
+							if (idx > depth) {
+								delete (frontmatter as Record<string, unknown>)[key];
+							}
+						}
+					}
+				}
 			}
 
 			// For closed key: always use current time (since we're adding it now)
 			if (keyType === 'both' || keyType === 'closed') {
 				const closedTimestamp = this.timestampGenerator.generateTimestamp();
-				frontmatter[this.settings.dateClosedKey] = closedTimestamp;
+			// Cap at 5 for memory management
+			let depth = Math.min(5, Math.max(1, this.settings.historyDepth || 1));
+			const overrideKeyC = `${this.settings.dateClosedKey}_history`;
+				if (overrideKeyC in frontmatter) {
+					const ov = frontmatter[overrideKeyC];
+					const maybeNum = typeof ov === 'number' ? ov : parseInt(String(ov), 10);
+					if (!Number.isNaN(maybeNum) && maybeNum >= 1) {
+						depth = Math.min(5, maybeNum);
+					}
+				}
+				if (depth === 1) {
+					frontmatter[this.settings.dateClosedKey] = closedTimestamp;
+				} else {
+					for (let i = depth; i >= 2; i--) {
+						const prevKey = i === 2 ? `${this.settings.dateClosedKey}_1` : `${this.settings.dateClosedKey}_${i - 1}`;
+						const targetKey = `${this.settings.dateClosedKey}_${i}`;
+						if (prevKey in frontmatter) {
+							(frontmatter as Record<string, unknown>)[targetKey] = (frontmatter as Record<string, unknown>)[prevKey];
+						} else {
+							delete (frontmatter as Record<string, unknown>)[targetKey];
+						}
+					}
+				(frontmatter as Record<string, unknown>)[`${this.settings.dateClosedKey}_1`] = closedTimestamp;
+				// Always set base key to newest
+				(frontmatter as Record<string, unknown>)[this.settings.dateClosedKey] = closedTimestamp;
+
+				// Clean up any numbered keys beyond the per-file depth
+					for (const key of Object.keys(frontmatter)) {
+						const m = key.match(new RegExp(`^${this.settings.dateClosedKey}_(\\d+)$`));
+						if (m) {
+							const idx = parseInt(m[1], 10);
+							if (idx > depth) {
+								delete (frontmatter as Record<string, unknown>)[key];
+							}
+						}
+					}
+				}
 			}
 		});
 	}
@@ -115,8 +189,15 @@ export class FileHandler {
 		let hasKeys = false;
 
 		await this.app.fileManager.processFrontMatter(file, (frontmatter: Record<string, unknown>) => {
-			const hasOpened = this.settings.dateOpenedKey in frontmatter;
-			const hasClosed = this.settings.dateClosedKey in frontmatter;
+			const openedBase = this.settings.dateOpenedKey;
+			const closedBase = this.settings.dateClosedKey;
+
+			// Also consider per-file override key e.g. `date_last_opened_history`
+			const openedHistoryKey = `${openedBase}_history`;
+			const closedHistoryKey = `${closedBase}_history`;
+
+			const hasOpened = openedBase in frontmatter || `${openedBase}_1` in frontmatter || openedHistoryKey in frontmatter;
+			const hasClosed = closedBase in frontmatter || `${closedBase}_1` in frontmatter || closedHistoryKey in frontmatter;
 
 			hasKeys = hasOpened || hasClosed;
 		});
@@ -146,7 +227,49 @@ export class FileHandler {
 		const timestamp = this.timestampGenerator.generateTimestamp();
 
 		await this.app.fileManager.processFrontMatter(file, (frontmatter: Record<string, unknown>) => {
-			frontmatter[property] = timestamp;
+			// Determine per-file depth override: check frontmatter for `<property>_history` numeric value
+			// Cap at 5 for memory management
+			let depth = Math.min(5, Math.max(1, this.settings.historyDepth || 1));
+			const overrideKey = `${property}_history`;
+			const overrideVal = frontmatter[overrideKey];
+			if (overrideVal !== undefined) {
+				const maybeNum = typeof overrideVal === 'number' ? overrideVal : parseInt(String(overrideVal), 10);
+				if (!Number.isNaN(maybeNum) && maybeNum >= 1) {
+					depth = Math.min(5, maybeNum);
+				}
+			}
+			if (depth === 1) {
+				frontmatter[property] = timestamp;
+				return;
+			}
+
+			// Shift numbered keys up: property_{depth} = property_{depth-1}, ..., property_2 = property_1
+			for (let i = depth; i >= 2; i--) {
+				const prevKey = i === 2 ? `${property}_1` : `${property}_${i - 1}`;
+				const targetKey = `${property}_${i}`;
+				if (prevKey in frontmatter) {
+					(frontmatter as Record<string, unknown>)[targetKey] = (frontmatter as Record<string, unknown>)[prevKey];
+				} else {
+					delete (frontmatter as Record<string, unknown>)[targetKey];
+				}
+			}
+
+			// Set newest
+			(frontmatter as Record<string, unknown>)[`${property}_1`] = timestamp;
+
+			// Always set base key to newest timestamp
+			(frontmatter as Record<string, unknown>)[property] = timestamp;
+
+			// Clean up any numbered keys beyond the configured depth
+			for (const key of Object.keys(frontmatter)) {
+				const m = key.match(new RegExp(`^${property}_(\\d+)$`));
+				if (m) {
+					const idx = parseInt(m[1], 10);
+					if (idx > depth) {
+						delete (frontmatter as Record<string, unknown>)[key];
+					}
+				}
+			}
 		});
 	}
 }
