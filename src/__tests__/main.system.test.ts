@@ -25,7 +25,7 @@ describe('LastOpenedPlugin System Test', () => {
     it('should load default settings', async () => {
       await plugin.onload();
       expect(plugin.settings).toBeDefined();
-      expect(plugin.settings.dateOpenedKey).toBe('date_last_opened');
+      expect(plugin.settings.dateOpenedKey).toBe('last_opened');
     });
 
     it('should save settings', async () => {

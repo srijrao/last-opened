@@ -54,7 +54,7 @@ describe('FileHandler Integration', () => {
         callCount++;
         if (callCount === 1) {
           // hasTrackedKeys call
-          callback({ date_last_opened: 'existing' });
+          callback({ last_opened: 'existing' });
         } else {
           // update call
           callback({});
@@ -69,7 +69,7 @@ describe('FileHandler Integration', () => {
   describe('hasTrackedKeys', () => {
     it('should return true if file has opened key', async () => {
       mockApp.fileManager.processFrontMatter = jest.fn().mockImplementation(async (file, callback) => {
-        callback({ date_last_opened: '2023-01-01' });
+        callback({ last_opened: '2023-01-01' });
       });
 
       const result = await fileHandler.hasTrackedKeys(mockFile);
@@ -78,7 +78,7 @@ describe('FileHandler Integration', () => {
 
     it('should return true if file has closed key', async () => {
       mockApp.fileManager.processFrontMatter = jest.fn().mockImplementation(async (file, callback) => {
-        callback({ date_last_closed: '2023-01-01' });
+        callback({ last_closed: '2023-01-01' });
       });
 
       const result = await fileHandler.hasTrackedKeys(mockFile);

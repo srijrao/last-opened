@@ -34,8 +34,8 @@ describe('Settings', () => {
     });
 
     it('should have sensible default values', () => {
-      expect(DEFAULT_SETTINGS.dateOpenedKey).toBe('date_last_opened');
-      expect(DEFAULT_SETTINGS.dateClosedKey).toBe('date_last_closed');
+      expect(DEFAULT_SETTINGS.dateOpenedKey).toBe('last_opened');
+      expect(DEFAULT_SETTINGS.dateClosedKey).toBe('last_closed');
       expect(DEFAULT_SETTINGS.dateFormat).toBe('YYYY-MM-DDTHH:mm:ssZ');
       expect(DEFAULT_SETTINGS.trackOpened).toBe(true);
       expect(DEFAULT_SETTINGS.trackClosed).toBe(true);
