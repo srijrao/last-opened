@@ -342,8 +342,8 @@ The dev build creates a `main.js` file in the root directory, which Obsidian loa
 Example result:
 ```yaml
 ---
-date_last_opened: 2025-11-14T15:30:45-05:00
-date_last_closed: 2025-11-14T15:32:12-05:00
+-11-14T15:30:45-05:00
+-11-14T15:32:12-05:00
 other_field: your other metadata
 ---
 

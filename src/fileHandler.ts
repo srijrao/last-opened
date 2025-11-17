@@ -119,6 +119,15 @@ export class FileHandler {
 				(frontmatter as Record<string, unknown>)[this.settings.dateOpenedKey] = openedTimestamp;
 
 				// Clean up any numbered keys beyond the per-file depth
+				if (depth === 1) {
+					// For depth 1, delete all numbered keys
+					for (const key of Object.keys(frontmatter)) {
+						const m = key.match(new RegExp(`^${this.settings.dateOpenedKey}_(\\d+)$`));
+						if (m) {
+							delete (frontmatter as Record<string, unknown>)[key];
+						}
+					}
+				} else {
 					for (const key of Object.keys(frontmatter)) {
 						const m = key.match(new RegExp(`^${this.settings.dateOpenedKey}_(\\d+)$`));
 						if (m) {
@@ -128,6 +137,7 @@ export class FileHandler {
 							}
 						}
 					}
+				}
 				}
 			}
 
@@ -161,6 +171,15 @@ export class FileHandler {
 				(frontmatter as Record<string, unknown>)[this.settings.dateClosedKey] = closedTimestamp;
 
 				// Clean up any numbered keys beyond the per-file depth
+				if (depth === 1) {
+					// For depth 1, delete all numbered keys
+					for (const key of Object.keys(frontmatter)) {
+						const m = key.match(new RegExp(`^${this.settings.dateClosedKey}_(\\d+)$`));
+						if (m) {
+							delete (frontmatter as Record<string, unknown>)[key];
+						}
+					}
+				} else {
 					for (const key of Object.keys(frontmatter)) {
 						const m = key.match(new RegExp(`^${this.settings.dateClosedKey}_(\\d+)$`));
 						if (m) {
@@ -170,6 +189,7 @@ export class FileHandler {
 							}
 						}
 					}
+				}
 				}
 			}
 		});
@@ -240,6 +260,13 @@ export class FileHandler {
 			}
 			if (depth === 1) {
 				frontmatter[property] = timestamp;
+				// Clean up any existing numbered keys for depth 1
+				for (const key of Object.keys(frontmatter)) {
+					const m = key.match(new RegExp(`^${property}_(\\d+)$`));
+					if (m) {
+						delete (frontmatter as Record<string, unknown>)[key];
+					}
+				}
 				return;
 			}
 
