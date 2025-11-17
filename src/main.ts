@@ -49,6 +49,9 @@ export default class LastOpenedPlugin extends Plugin {
 	/** Event handler instance for managing file events */
 	private eventHandler: EventHandler | null = null;
 
+	/** File handler instance for file operations */
+	private fileHandler: any = null;
+
 	/**
 	 * onload() is called when Obsidian loads the plugin
 	 * This is where we initialize everything
@@ -78,6 +81,7 @@ export default class LastOpenedPlugin extends Plugin {
 			timestampGenerator,
 			eventHandler
 		);
+		this.fileHandler = fileHandler;
 
 		// Step 6: Update the event handler to use the real file handler
 		eventHandler.setFileHandler(fileHandler);
@@ -94,6 +98,9 @@ export default class LastOpenedPlugin extends Plugin {
 
 		// Step 10: Add settings tab
 		this.addSettingTab(new LastOpenedSettingTab(this.app, this));
+
+		// Step 11: Update types.json to register our datetime properties
+		await fileHandler.updateTypesJson();
 
 		console.log('Last Opened Plugin loaded');
 	}
@@ -137,12 +144,15 @@ export default class LastOpenedPlugin extends Plugin {
 	/**
 	 * Save settings to Obsidian's plugin storage
 	 * This persists the settings so they survive app restarts
-	 *
-	 * Note: This method isn't called directly in the current version,
-	 * but it's here for future features like a settings UI
+	 * Also updates types.json when settings change
 	 */
 	async saveSettings(): Promise<void> {
 		await this.saveData(this.settings);
+		
+		// Update types.json when settings change (e.g., key names changed)
+		if (this.fileHandler) {
+			await this.fileHandler.updateTypesJson();
+		}
 	}
 }
 

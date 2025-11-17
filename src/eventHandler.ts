@@ -51,6 +51,14 @@ export class EventHandler {
 	}
 
 	/**
+	 * Get the file handler instance
+	 * Used when settings change to update types.json
+	 */
+	getFileHandler(): FileHandlerLike {
+		return this.fileHandler;
+	}
+
+	/**
 	 * Register all event listeners for the plugin
 	 * Called once when the plugin loads
 	 *

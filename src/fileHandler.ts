@@ -226,6 +226,67 @@ export class FileHandler {
 	}
 
 	/**
+	 * Update Obsidian's types.json file to register our datetime properties
+	 * This ensures the Properties panel displays our timestamps correctly
+	 * 
+	 * For beginners: The types.json file tells Obsidian what type each property is.
+	 * By registering our keys as "datetime", Obsidian knows to format them as dates.
+	 */
+	async updateTypesJson(): Promise<void> {
+		try {
+			const configDir = this.app.vault.configDir;
+			const typesPath = `${configDir}/types.json`;
+			
+			// Read existing types.json or create new structure
+			let typesData: { types: Record<string, string> };
+			try {
+				const content = await this.app.vault.adapter.read(typesPath);
+				typesData = JSON.parse(content);
+				
+				// Ensure types object exists
+				if (!typesData.types || typeof typesData.types !== 'object') {
+					typesData = { types: {} };
+				}
+			} catch (error) {
+				// File doesn't exist or is invalid, create new structure
+				typesData = { types: {} };
+			}
+
+			// Get all keys we need to register (base + numbered history keys)
+			const keysToRegister = new Set<string>();
+			const maxDepth = 5; // Maximum history depth supported
+			
+			// Add base keys
+			keysToRegister.add(this.settings.dateOpenedKey);
+			keysToRegister.add(this.settings.dateClosedKey);
+			
+			// Add numbered keys for history (e.g., last_opened_1, last_opened_2, etc.)
+			for (let i = 1; i <= maxDepth; i++) {
+				keysToRegister.add(`${this.settings.dateOpenedKey}_${i}`);
+				keysToRegister.add(`${this.settings.dateClosedKey}_${i}`);
+			}
+
+			// Update or add all keys as datetime type
+			let hasChanges = false;
+			for (const key of keysToRegister) {
+				if (typesData.types[key] !== 'datetime') {
+					typesData.types[key] = 'datetime';
+					hasChanges = true;
+				}
+			}
+
+			// Only write if we made changes
+			if (hasChanges) {
+				const json = JSON.stringify(typesData, null, 2);
+				await this.app.vault.adapter.write(typesPath, json);
+			}
+		} catch (error) {
+			console.error('Failed to update types.json:', error);
+			// Don't throw - this is a nice-to-have feature, not critical
+		}
+	}
+
+	/**
 	 * Private helper: Update a single property in frontmatter
 	 * This is the workhorse method that does the actual update
 	 *

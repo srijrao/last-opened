@@ -15,6 +15,10 @@ This plugin operates on notes in Obsidian that contain specific YAML keys. By de
     - `date_last_opened` and `date_last_closed` as defaults.
 - **Configurable Time Formats** Users can choose from preset time formats: ISO 8601 with local offset or UTC.
     - ISO 8601 Format with local offset as default in Obsidian
+- **Automatic Type Registration:** The plugin automatically updates Obsidian's `types.json` file to register all tracked properties as datetime types. This ensures the Properties panel displays timestamps correctly without manual configuration.
+    - Updates on plugin load and whenever settings change
+    - Preserves existing property type definitions
+    - Registers base keys and all numbered history keys (e.g., `last_opened_1`, `last_opened_2`, etc.)
 
 ### Future Plans
 - **Additional Timestamps:** Future versions may add support for tracking and adding timestamps for other events in the YAML frontmatter. This is not included in the current version.
