@@ -43,21 +43,9 @@ export class TimestampGenerator {
 			case 'YYYY-MM-DDTHH:mm:ssZ':
 				return this.toISO8601WithOffset(targetDate);
 
-			// Local datetime with timezone offset (readable alternative)
-			case 'YYYY-MM-DD HH:mm:ssZ':
-				return this.toLocalDateTimeWithOffset(targetDate);
-
-			// ISO 8601 formats (very standard, used across the web)
-			case 'YYYY-MM-DDTHH:mm:ss':
-				return this.toISO8601Local(targetDate);
-
 			// UTC format (good for standardization)
 			case 'UTC':
 				return targetDate.toISOString();
-
-			// Fallback to ISO 8601 with offset if user has custom format
-			default:
-				return this.toISO8601WithOffset(targetDate);
 		}
 	}
 
@@ -95,89 +83,6 @@ export class TimestampGenerator {
 		const offset = `${sign}${String(offsetHours).padStart(2, '0')}:${String(offsetMins).padStart(2, '0')}`;
 
 		return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}${offset}`;
-	}
-
-	/**
-	 * Helper: Convert date to ISO 8601 format WITHOUT timezone info
-	 * Format: 2025-11-14T15:30:45
-	 *
-	 * @param date - JavaScript Date object
-	 * @returns ISO 8601 string in local time (no offset)
-	 *
-	 * This is simpler but you lose timezone context. Good if your vault
-	 * is always used in the same timezone.
-	 */
-	private toISO8601Local(date: Date): string {
-		let year: number;
-		let month: string;
-		let day: string;
-		let hours: string;
-		let minutes: string;
-		let seconds: string;
-
-		if (this.settings.timezone === 'utc') {
-			year = date.getUTCFullYear();
-			month = String(date.getUTCMonth() + 1).padStart(2, '0');
-			day = String(date.getUTCDate()).padStart(2, '0');
-			hours = String(date.getUTCHours()).padStart(2, '0');
-			minutes = String(date.getUTCMinutes()).padStart(2, '0');
-			seconds = String(date.getUTCSeconds()).padStart(2, '0');
-		} else {
-			year = date.getFullYear();
-			month = String(date.getMonth() + 1).padStart(2, '0');
-			day = String(date.getDate()).padStart(2, '0');
-			hours = String(date.getHours()).padStart(2, '0');
-			minutes = String(date.getMinutes()).padStart(2, '0');
-			seconds = String(date.getSeconds()).padStart(2, '0');
-		}
-
-		return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
-	}
-
-	/**
-	 * Helper: Convert date to local datetime format with timezone offset (or UTC)
-	 * Format: 2025-11-14 15:30:45-06:00 or 2025-11-14 20:30:45Z
-	 *
-	 * @param date - JavaScript Date object
-	 * @returns Local datetime string with timezone info
-	 *
-	 * This format is human-readable, includes timezone info, and commonly
-	 * auto-recognized as datetime in systems like Obsidian's property system.
-	 */
-	private toLocalDateTimeWithOffset(date: Date): string {
-		// If timezone is set to UTC, return UTC datetime with Z
-		if (this.settings.timezone === 'utc') {
-			const utcString = date.toISOString();
-			// Convert to format like 2025-11-14 20:30:45Z
-			const utcDate = new Date(utcString);
-			const year = utcDate.getUTCFullYear();
-			const month = String(utcDate.getUTCMonth() + 1).padStart(2, '0');
-			const day = String(utcDate.getUTCDate()).padStart(2, '0');
-			const hours = String(utcDate.getUTCHours()).padStart(2, '0');
-			const minutes = String(utcDate.getUTCMinutes()).padStart(2, '0');
-			const seconds = String(utcDate.getUTCSeconds()).padStart(2, '0');
-			return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}Z`;
-		}
-
-		const offsetMs = date.getTimezoneOffset() * 60000;
-		const localDate = new Date(date.getTime() - offsetMs);
-
-		// Format local time
-		const year = localDate.getFullYear();
-		const month = String(localDate.getMonth() + 1).padStart(2, '0');
-		const day = String(localDate.getDate()).padStart(2, '0');
-		const hours = String(localDate.getHours()).padStart(2, '0');
-		const minutes = String(localDate.getMinutes()).padStart(2, '0');
-		const seconds = String(localDate.getSeconds()).padStart(2, '0');
-
-		// Calculate offset (e.g., "-06:00" for CDT)
-		const offsetMinutes = -date.getTimezoneOffset();
-		const offsetHours = Math.floor(Math.abs(offsetMinutes) / 60);
-		const offsetMins = Math.abs(offsetMinutes) % 60;
-		const sign = offsetMinutes >= 0 ? '+' : '-';
-		const offset = `${sign}${String(offsetHours).padStart(2, '0')}:${String(offsetMins).padStart(2, '0')}`;
-
-		return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}${offset}`;
 	}
 }
 

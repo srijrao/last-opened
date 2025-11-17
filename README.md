@@ -13,7 +13,7 @@ This plugin operates on notes in Obsidian that contain specific YAML keys. By de
 - **Performance Optimization:** The plugin only makes changes to notes when they are opened or closed, reducing unnecessary processing and improving performance.
 - **Configurable Keys:** Users can change which YAML keys the plugin looks for and manages, but the default set matches the initial configuration. 
     - `date_last_opened` and `date_last_closed` as defaults.
-- **Configurable Time Formats** Users can define the time format used in the timestamp. UTC, local with UTC offset, one timezone in particular, different moment.js formats, etc. 
+- **Configurable Time Formats** Users can choose from preset time formats: ISO 8601 with local offset or UTC.
     - ISO 8601 Format with local offset as default in Obsidian
 
 ### Future Plans
@@ -261,9 +261,11 @@ The plugin can be configured through Obsidian's settings panel:
 - **Note**: Leaving fields empty will automatically use the default values
 
 ### Time Format
-- **Date Format**: Timestamp format using moment.js style (default: `YYYY-MM-DDTHH:mm:ssZ`)
+- **Date Format**: Choose from preset timestamp formats (default: `Local with offset`)
 - **Timezone**: Whether to use local time with offset or UTC (default: `local`)
-- **Note**: Leaving the format field empty will use the ISO 8601 standard format
+- **Available Formats**:
+  - `Local with offset`: `2025-11-11T14:00:00-06:00`
+  - `UTC`: `2025-11-11T20:00:00.000Z`
 
 ### Tracking Options
 - **Track Openings**: Enable/disable recording of opening timestamps

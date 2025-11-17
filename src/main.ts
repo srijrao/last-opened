@@ -220,36 +220,13 @@ class LastOpenedSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName('Date Format')
-			.setDesc('Format for timestamps (moment.js style)')
-			.addText(text => text
-				.setPlaceholder('YYYY-MM-DDTHH:mm:ssZ')
+			.setDesc('Format for timestamps')
+			.addDropdown(dropdown => dropdown
+				.addOption('YYYY-MM-DDTHH:mm:ssZ', 'Local with offset (2025-11-11T14:00:00-06:00)')
+				.addOption('UTC', 'UTC (2025-11-11T20:00:00.000Z)')
 				.setValue(this.plugin.settings.dateFormat)
-				.onChange(async (value) => {
-					// Handle empty values gracefully - use default ISO format
-					const trimmed = value.trim();
-					const finalValue = trimmed || 'YYYY-MM-DDTHH:mm:ssZ'; // Default ISO format
-
-					// Basic validation - check for common required components (only warn, don't prevent)
-					if (finalValue !== 'YYYY-MM-DDTHH:mm:ssZ') { // Don't warn about the default
-						if (!finalValue.includes('YYYY') && !finalValue.includes('YY')) {
-							text.inputEl.style.borderColor = 'orange';
-							text.inputEl.title = 'Format should include year (YYYY or YY)';
-						} else if (!finalValue.includes('MM') && !finalValue.includes('M')) {
-							text.inputEl.style.borderColor = 'orange';
-							text.inputEl.title = 'Format should include month (MM or M)';
-						} else if (!finalValue.includes('DD') && !finalValue.includes('D')) {
-							text.inputEl.style.borderColor = 'orange';
-							text.inputEl.title = 'Format should include day (DD or D)';
-						} else {
-							text.inputEl.style.borderColor = '';
-							text.inputEl.title = '';
-						}
-					} else {
-						text.inputEl.style.borderColor = '';
-						text.inputEl.title = '';
-					}
-
-					this.plugin.settings.dateFormat = finalValue;
+				.onChange(async (value: 'YYYY-MM-DDTHH:mm:ssZ' | 'UTC') => {
+					this.plugin.settings.dateFormat = value;
 					await this.plugin.saveSettings();
 				}));
 

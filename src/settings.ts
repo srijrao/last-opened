@@ -20,8 +20,8 @@ export interface LastOpenedSettings {
 	/** YAML key name for tracking when a note was closed */
 	dateClosedKey: string;
 
-	/** Format string for timestamps (using moment.js format) */
-	dateFormat: string;
+	/** Format string for timestamps */
+	dateFormat: 'YYYY-MM-DDTHH:mm:ssZ' | 'UTC';
 
 	/** Whether to track opening timestamps */
 	trackOpened: boolean;
@@ -91,6 +91,11 @@ export function validateSettings(settings: unknown): boolean {
 	// Additional type checks
 	const s = settings as Record<string, unknown>;
 	if (typeof s.historyDepth !== 'number' || s.historyDepth < 1 || s.historyDepth > 5) {
+		return false;
+	}
+
+	const allowedFormats = ['YYYY-MM-DDTHH:mm:ssZ', 'UTC'];
+	if (!allowedFormats.includes(s.dateFormat as string)) {
 		return false;
 	}
 
