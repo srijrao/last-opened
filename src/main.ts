@@ -20,7 +20,7 @@ import {
 	validateSettings
 } from './settings';
 import { createTimestampGenerator } from './timestamp';
-import { createFileHandler } from './fileHandler';
+import { createFileHandler, FileHandler } from './fileHandler';
 import { EventHandler } from './eventHandler';
 import { setupCommands } from './commands';
 
@@ -50,7 +50,7 @@ export default class LastOpenedPlugin extends Plugin {
 	private eventHandler: EventHandler | null = null;
 
 	/** File handler instance for file operations */
-	private fileHandler: any = null;
+	private fileHandler: FileHandler | null = null;
 
 	/**
 	 * onload() is called when Obsidian loads the plugin

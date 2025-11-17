@@ -12,7 +12,7 @@
     "test:watch": "jest --watch"
   },
   "keywords": [],
-  "author": "",
+  "author": "Justin Changalpet (https://github.com/srijrao)",
   "license": "MIT",
   "devDependencies": {
     "@types/jest": "^29.5.0",

@@ -1,5 +1,5 @@
 import { EventHandler } from '../eventHandler';
-import { Plugin, TFile, App } from 'obsidian';
+import { TFile, App } from 'obsidian';
 
 describe('EventHandler persistence and cleanup', () => {
   let mockPlugin: any;

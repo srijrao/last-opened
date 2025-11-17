@@ -12,7 +12,7 @@ This plugin operates on notes in Obsidian that contain specific YAML keys. By de
     - **Accurate Timestamps:** When adding keys to a note that was opened earlier, the plugin uses the actual opening time, not the time when the command was run
 - **Performance Optimization:** The plugin only makes changes to notes when they are opened or closed, reducing unnecessary processing and improving performance.
 - **Configurable Keys:** Users can change which YAML keys the plugin looks for and manages, but the default set matches the initial configuration. 
-    - `date_last_opened` and `date_last_closed` as defaults.
+   - `last_opened` and `last_closed` as defaults.
 - **Configurable Time Formats** Users can choose from preset time formats: ISO 8601 with local offset or UTC.
     - ISO 8601 Format with local offset as default in Obsidian
 - **Automatic Type Registration:** The plugin automatically updates Obsidian's `types.json` file to register all tracked properties as datetime types. This ensures the Properties panel displays timestamps correctly without manual configuration.
@@ -69,8 +69,8 @@ Contains:
 **Example settings:**
 ```typescript
 {
-  dateOpenedKey: 'date_last_opened',    // YAML key for tracking opens
-  dateClosedKey: 'date_last_closed',    // YAML key for tracking closes
+   dateOpenedKey: 'last_opened',    // YAML key for tracking opens
+   dateClosedKey: 'last_closed',    // YAML key for tracking closes
   dateFormat: 'YYYY-MM-DDTHH:mm:ssZ',   // ISO 8601 with timezone offset
   trackOpened: true,                    // Enable open tracking?
   trackClosed: true,                    // Enable close tracking?
@@ -260,8 +260,8 @@ The plugin can be configured through Obsidian's settings panel:
 3. Configure the following options:
 
 ### YAML Keys
-- **Opened Key**: Name of the YAML key for tracking opening times (default: `date_last_opened`)
-- **Closed Key**: Name of the YAML key for tracking closing times (default: `date_last_closed`)
+- **Opened Key**: Name of the YAML key for tracking opening times (default: `last_opened`)
+- **Closed Key**: Name of the YAML key for tracking closing times (default: `last_closed`)
 - **Note**: Leaving fields empty will automatically use the default values
 
 ### Time Format
@@ -282,19 +282,21 @@ The plugin can be configured through Obsidian's settings panel:
 
 The plugin automatically saves opening times across Obsidian restarts, ensuring accurate timestamps even when you add tracking keys to notes that were opened in previous sessions.
 
-**Data Retention:** Opening times are automatically cleaned up after 48 hours to keep memory usage low and data relevant. Only recent file interactions are retained.
+**Data Retention:** The plugin stores timestamps directly in note frontmatter. The plugin itself does not purge frontmatter values; historical entries are controlled by the `historyDepth` setting (default: 1).
 
 ## Template Usage
 
 The plugin is designed to work well with note templates. You can create templates with empty YAML keys that the plugin will automatically populate:
 
-```yaml
----
 date_last_opened: 
 date_last_closed: 
 tags: template/daily-note
+```yaml
 ---
+last_opened: 
+last_closed: 
 
+---
 # Daily Note Template
 
 Today's date: {{date}}
@@ -346,8 +348,8 @@ The dev build creates a `main.js` file in the root directory, which Obsidian loa
 Example result:
 ```yaml
 ---
--11-14T15:30:45-05:00
--11-14T15:32:12-05:00
+last_opened: 2025-11-14T15:30:45-05:00
+last_closed: 2025-11-14T15:32:12-05:00
 other_field: your other metadata
 ---
 
@@ -356,17 +358,17 @@ other_field: your other metadata
 
 ### The timestamps will update automatically
 
-- **date_last_opened** updates when you first open a note in the current Obsidian session
-- **date_last_closed** updates when you close the last tab of a note or close Obsidian
+- `last_opened` updates when you first open a note in the current Obsidian session
+- `last_closed` updates when you close the last tab of a note or close Obsidian
 
 ### Accurate timestamp recording
 
-The plugin tracks opening times for all notes, even those without YAML keys. This ensures that when you later decide to add tracking keys to a note you opened earlier, the `date_last_opened` will reflect the actual time you opened it, not when you ran the command.
+The plugin tracks opening times for all notes, even those without YAML keys. This ensures that when you later decide to add tracking keys to a note you opened earlier, the `last_opened` value will reflect the actual time you opened it, not when you ran the command.
 
 **Example scenario:**
 1. At 2:00 PM: You open "My Note.md" (no YAML keys yet)
 2. At 2:05 PM: You decide to add tracking, run "Add last-opened and last-closed keys"
-3. Result: `date_last_opened` shows 2:00 PM (when you actually opened it), `date_last_closed` shows 2:05 PM (when you ran the command)
+3. Result: `last_opened` shows 2:00 PM (when you actually opened it), `last_closed` shows 2:05 PM (when you ran the command)
 
 ---
 

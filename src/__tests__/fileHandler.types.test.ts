@@ -83,7 +83,7 @@ describe('FileHandler types.json updates', () => {
 
 			// Verify write was called
 			expect(mockAdapter.write).toHaveBeenCalled();
-			const [path, content] = mockAdapter.write.mock.calls[0];
+			const [, content] = mockAdapter.write.mock.calls[0];
 
 			// Parse and verify content
 			const data = JSON.parse(content);

@@ -3,8 +3,8 @@
   "name": "Last Opened",
   "version": "1.0.0",
   "minAppVersion": "0.15.0",
-  "description": "Automatically adds date_last_opened and date_last_closed timestamps to your notes' frontmatter.",
-  "author": "Your Name",
-  "authorUrl": "",
+  "description": "Obsidian plugin to track when notes are opened and closed",
+  "author": "Justin Changalpet",
+  "authorUrl": "https://github.com/srijrao",
   "isDesktopOnly": false
 }
