@@ -60,6 +60,8 @@ describe('FileHandler types.json updates', () => {
 			expect(data.types).toBeDefined();
 			expect(data.types[settings.dateOpenedKey]).toBe('datetime');
 			expect(data.types[settings.dateClosedKey]).toBe('datetime');
+			expect(data.types[settings.lastViewKey]).toBe('datetime');
+			expect(data.types[settings.lastUnfocusKey]).toBe('datetime');
 			
 			// Check numbered keys
 			for (let i = 1; i <= 5; i++) {
@@ -96,13 +98,17 @@ describe('FileHandler types.json updates', () => {
 			// Check our entries were added
 			expect(data.types[settings.dateOpenedKey]).toBe('datetime');
 			expect(data.types[settings.dateClosedKey]).toBe('datetime');
+			expect(data.types[settings.lastViewKey]).toBe('datetime');
+			expect(data.types[settings.lastUnfocusKey]).toBe('datetime');
 		});
 
 		test('should not write if no changes are needed', async () => {
 			const existingTypes = {
 				types: {
 					[settings.dateOpenedKey]: 'datetime',
-					[settings.dateClosedKey]: 'datetime'
+					[settings.dateClosedKey]: 'datetime',
+					[settings.lastViewKey]: 'datetime',
+					[settings.lastUnfocusKey]: 'datetime'
 				}
 			};
 

@@ -17,12 +17,15 @@ describe('EventHandler persistence and cleanup', () => {
     mockPlugin = {
       app: mockApp,
       saveData: jest.fn().mockResolvedValue(undefined),
-      loadData: jest.fn().mockResolvedValue(null)
+      loadData: jest.fn().mockResolvedValue(null),
+      settings: { trackFocusChanges: false }
     };
 
     mockFileHandler = {
       updateDateOpened: jest.fn().mockResolvedValue(undefined),
-      updateDateClosed: jest.fn().mockResolvedValue(undefined)
+      updateDateClosed: jest.fn().mockResolvedValue(undefined),
+      updateLastView: jest.fn().mockResolvedValue(undefined),
+      updateLastUnfocus: jest.fn().mockResolvedValue(undefined)
     };
 
     eventHandler = new EventHandler(mockPlugin, mockFileHandler);
@@ -132,6 +135,64 @@ describe('EventHandler persistence and cleanup', () => {
 
       const result = eventHandler.getFileOpeningTime(testFile);
       expect(result).toBeNull();
+    });
+  });
+
+  describe('focus change tracking', () => {
+    it('should update unfocus/view when switching files in the same tab group', async () => {
+      mockPlugin.settings.trackFocusChanges = true;
+
+      const fileA = new TFile();
+      fileA.path = 'a.md';
+      const fileB = new TFile();
+      fileB.path = 'b.md';
+      const group = { id: 'g1' };
+
+      const leafA = { parent: group, view: { file: fileA } };
+      const leafB = { parent: group, view: { file: fileB } };
+
+      await (eventHandler as any).handleActiveLeafChange(leafA);
+      await (eventHandler as any).handleActiveLeafChange(leafB);
+
+      expect(mockFileHandler.updateLastUnfocus).toHaveBeenCalledWith(fileA);
+      expect(mockFileHandler.updateLastView).toHaveBeenCalledWith(fileB);
+    });
+
+    it('should not update focus keys when switching tab groups', async () => {
+      mockPlugin.settings.trackFocusChanges = true;
+
+      const fileA = new TFile();
+      fileA.path = 'a.md';
+      const fileB = new TFile();
+      fileB.path = 'b.md';
+
+      const leafA = { parent: { id: 'g1' }, view: { file: fileA } };
+      const leafB = { parent: { id: 'g2' }, view: { file: fileB } };
+
+      await (eventHandler as any).handleActiveLeafChange(leafA);
+      await (eventHandler as any).handleActiveLeafChange(leafB);
+
+      expect(mockFileHandler.updateLastUnfocus).not.toHaveBeenCalled();
+      expect(mockFileHandler.updateLastView).not.toHaveBeenCalled();
+    });
+
+    it('should not update focus keys when feature is disabled', async () => {
+      mockPlugin.settings.trackFocusChanges = false;
+
+      const fileA = new TFile();
+      fileA.path = 'a.md';
+      const fileB = new TFile();
+      fileB.path = 'b.md';
+      const group = { id: 'g1' };
+
+      const leafA = { parent: group, view: { file: fileA } };
+      const leafB = { parent: group, view: { file: fileB } };
+
+      await (eventHandler as any).handleActiveLeafChange(leafA);
+      await (eventHandler as any).handleActiveLeafChange(leafB);
+
+      expect(mockFileHandler.updateLastUnfocus).not.toHaveBeenCalled();
+      expect(mockFileHandler.updateLastView).not.toHaveBeenCalled();
     });
   });
 });

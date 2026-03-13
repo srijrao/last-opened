@@ -31,6 +31,9 @@ describe('Settings', () => {
       expect(DEFAULT_SETTINGS).toHaveProperty('trackOpened');
       expect(DEFAULT_SETTINGS).toHaveProperty('trackClosed');
       expect(DEFAULT_SETTINGS).toHaveProperty('timezone');
+      expect(DEFAULT_SETTINGS).toHaveProperty('trackFocusChanges');
+      expect(DEFAULT_SETTINGS).toHaveProperty('lastViewKey');
+      expect(DEFAULT_SETTINGS).toHaveProperty('lastUnfocusKey');
     });
 
     it('should have sensible default values', () => {
@@ -40,6 +43,9 @@ describe('Settings', () => {
       expect(DEFAULT_SETTINGS.trackOpened).toBe(true);
       expect(DEFAULT_SETTINGS.trackClosed).toBe(true);
       expect(DEFAULT_SETTINGS.timezone).toBe('local');
+      expect(DEFAULT_SETTINGS.trackFocusChanges).toBe(false);
+      expect(DEFAULT_SETTINGS.lastViewKey).toBe('last_view');
+      expect(DEFAULT_SETTINGS.lastUnfocusKey).toBe('last_unfocus');
     });
   });
 });

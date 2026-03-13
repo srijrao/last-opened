@@ -34,6 +34,8 @@ import { registerFileExplorerMenus } from './contextMenus';
 interface TempFileHandler {
 	updateDateOpened: (file: TFile) => Promise<void>;
 	updateDateClosed: (file: TFile) => Promise<void>;
+	updateLastView: (file: TFile) => Promise<void>;
+	updateLastUnfocus: (file: TFile) => Promise<void>;
 }
 
 /**
@@ -70,7 +72,9 @@ export default class LastOpenedPlugin extends Plugin {
 		// Step 3: Create a temporary fileHandler for the eventHandler (will be replaced)
 		const tempFileHandler: TempFileHandler = {
 			updateDateOpened: () => Promise.resolve(),
-			updateDateClosed: () => Promise.resolve()
+			updateDateClosed: () => Promise.resolve(),
+			updateLastView: () => Promise.resolve(),
+			updateLastUnfocus: () => Promise.resolve()
 		};
 
 		// Step 4: Create event handler
@@ -278,6 +282,38 @@ class LastOpenedSettingTab extends PluginSettingTab {
 				.setValue(this.plugin.settings.trackClosed)
 				.onChange(async (value) => {
 					this.plugin.settings.trackClosed = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('Track Focus Changes')
+			.setDesc('Track last_view and last_unfocus when switching tabs within the same tab group')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.trackFocusChanges)
+				.onChange(async (value) => {
+					this.plugin.settings.trackFocusChanges = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('Last View Key')
+			.setDesc('YAML key for the most recent in-group focused view timestamp')
+			.addText(text => text
+				.setPlaceholder('last_view')
+				.setValue(this.plugin.settings.lastViewKey)
+				.onChange(async (value) => {
+					this.plugin.settings.lastViewKey = value.trim() || 'last_view';
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('Last Unfocus Key')
+			.setDesc('YAML key for when a note loses focus in the same tab group')
+			.addText(text => text
+				.setPlaceholder('last_unfocus')
+				.setValue(this.plugin.settings.lastUnfocusKey)
+				.onChange(async (value) => {
+					this.plugin.settings.lastUnfocusKey = value.trim() || 'last_unfocus';
 					await this.plugin.saveSettings();
 				}));
 

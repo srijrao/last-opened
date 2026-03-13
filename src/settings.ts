@@ -57,6 +57,15 @@ export interface LastOpenedSettings {
 
 	/** Show depth choice in ask modal */
 	showRecursionDepthInAsk: boolean;
+
+	/** Enable tracking for same-group tab focus changes */
+	trackFocusChanges: boolean;
+
+	/** YAML key for when a file gains focus in a tab group */
+	lastViewKey: string;
+
+	/** YAML key for when a file loses focus in a tab group */
+	lastUnfocusKey: string;
 }
 
 /**
@@ -78,7 +87,10 @@ export const DEFAULT_SETTINGS: LastOpenedSettings = {
 	customExtTo: 'txt',
 	folderRecursion: 'not-recursive',
 	folderRecursionDepth: 1,
-	showRecursionDepthInAsk: false
+	showRecursionDepthInAsk: false,
+	trackFocusChanges: false,
+	lastViewKey: 'last_view',
+	lastUnfocusKey: 'last_unfocus'
 };
 
 /**
@@ -111,7 +123,10 @@ export function validateSettings(settings: unknown): boolean {
 		'customExtTo',
 		'folderRecursion',
 		'folderRecursionDepth',
-		'showRecursionDepthInAsk'
+		'showRecursionDepthInAsk',
+		'trackFocusChanges',
+		'lastViewKey',
+		'lastUnfocusKey'
 	];
 
 	if (!requiredKeys.every(key => key in settings)) {
@@ -137,7 +152,17 @@ export function validateSettings(settings: unknown): boolean {
 		return false;
 	}
 
-	if (typeof s.uidKey !== 'string' || typeof s.customExtFrom !== 'string' || typeof s.customExtTo !== 'string') {
+	if (typeof s.trackFocusChanges !== 'boolean') {
+		return false;
+	}
+
+	if (
+		typeof s.uidKey !== 'string' ||
+		typeof s.customExtFrom !== 'string' ||
+		typeof s.customExtTo !== 'string' ||
+		typeof s.lastViewKey !== 'string' ||
+		typeof s.lastUnfocusKey !== 'string'
+	) {
 		return false;
 	}
 

@@ -61,6 +61,28 @@ export class FileHandler {
 	}
 
 	/**
+	 * Update frontmatter key for when a file is focused within a tab group
+	 */
+	async updateLastView(file: TFile): Promise<void> {
+		const key = this.settings.lastViewKey;
+		const timestamp = this.timestampGenerator.generateTimestamp();
+		await this.app.fileManager.processFrontMatter(file, (frontmatter: Record<string, unknown>) => {
+			frontmatter[key] = timestamp;
+		});
+	}
+
+	/**
+	 * Update frontmatter key for when a file loses focus within a tab group
+	 */
+	async updateLastUnfocus(file: TFile): Promise<void> {
+		const key = this.settings.lastUnfocusKey;
+		const timestamp = this.timestampGenerator.generateTimestamp();
+		await this.app.fileManager.processFrontMatter(file, (frontmatter: Record<string, unknown>) => {
+			frontmatter[key] = timestamp;
+		});
+	}
+
+	/**
 	 * Add YAML keys to a file's frontmatter
 	 * Creates frontmatter if it doesn't exist
 	 * Uses stored opening time if available, otherwise current time
@@ -259,6 +281,8 @@ export class FileHandler {
 			// Add base keys
 			keysToRegister.add(this.settings.dateOpenedKey);
 			keysToRegister.add(this.settings.dateClosedKey);
+			keysToRegister.add(this.settings.lastViewKey);
+			keysToRegister.add(this.settings.lastUnfocusKey);
 			
 			// Add numbered keys for history (e.g., last_opened_1, last_opened_2, etc.)
 			for (let i = 1; i <= maxDepth; i++) {

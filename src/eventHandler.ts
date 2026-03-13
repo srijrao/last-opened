@@ -18,6 +18,8 @@ import { Plugin, TFile } from 'obsidian';
 interface FileHandlerLike {
 	updateDateOpened(file: TFile): Promise<void>;
 	updateDateClosed(file: TFile): Promise<void>;
+	updateLastView(file: TFile): Promise<void>;
+	updateLastUnfocus(file: TFile): Promise<void>;
 }
 
 /**
@@ -26,6 +28,7 @@ interface FileHandlerLike {
  */
 export class EventHandler {
 	private lastActiveFile: TFile | null = null;
+	private lastFocusedLeaf: unknown = null;
 
 	/**
 	 * Track when each file was opened
@@ -75,6 +78,13 @@ export class EventHandler {
 			})
 		);
 
+		// Track tab focus changes only when the tab switch happens inside the same tab group.
+		this.plugin.registerEvent(
+			this.plugin.app.workspace.on('active-leaf-change', (leaf: unknown) => {
+				this.handleActiveLeafChange(leaf);
+			})
+		);
+
 		// Register for application shutdown
 		// This ensures we update the "closed" timestamp even when quitting Obsidian
 		this.plugin.app.workspace.onLayoutReady(() => {
@@ -82,6 +92,55 @@ export class EventHandler {
 				this.handleApplicationClose();
 			});
 		});
+	}
+
+	private isFocusTrackingEnabled(): boolean {
+		const settings = (this.plugin as unknown as { settings?: { trackFocusChanges?: boolean } }).settings;
+		return Boolean(settings?.trackFocusChanges);
+	}
+
+	private extractFileFromLeaf(leaf: unknown): TFile | null {
+		const maybeLeaf = leaf as { view?: { file?: unknown } } | null;
+		const maybeFile = maybeLeaf?.view?.file;
+		return maybeFile instanceof TFile ? maybeFile : null;
+	}
+
+	private getLeafGroup(leaf: unknown): unknown {
+		return (leaf as { parent?: unknown } | null)?.parent ?? null;
+	}
+
+	private async handleActiveLeafChange(leaf: unknown): Promise<void> {
+		if (!this.isFocusTrackingEnabled()) {
+			this.lastFocusedLeaf = leaf;
+			this.lastActiveFile = this.extractFileFromLeaf(leaf);
+			return;
+		}
+
+		const currentFile = this.extractFileFromLeaf(leaf);
+		if (!currentFile) {
+			this.lastFocusedLeaf = leaf;
+			this.lastActiveFile = null;
+			return;
+		}
+
+		if (!this.lastActiveFile || !this.lastFocusedLeaf) {
+			this.lastFocusedLeaf = leaf;
+			this.lastActiveFile = currentFile;
+			return;
+		}
+
+		const previousGroup = this.getLeafGroup(this.lastFocusedLeaf);
+		const currentGroup = this.getLeafGroup(leaf);
+		const sameGroup = previousGroup !== null && previousGroup === currentGroup;
+		const changedFile = this.lastActiveFile.path !== currentFile.path;
+
+		if (sameGroup && changedFile) {
+			await this.fileHandler.updateLastUnfocus(this.lastActiveFile);
+			await this.fileHandler.updateLastView(currentFile);
+		}
+
+		this.lastFocusedLeaf = leaf;
+		this.lastActiveFile = currentFile;
 	}
 
 	/**
