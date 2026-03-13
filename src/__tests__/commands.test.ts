@@ -1,6 +1,7 @@
 import { CommandRegistry } from '../commands';
 import { FileHandler } from '../fileHandler';
 import { App, TFile } from 'obsidian';
+import { UidHandler } from '../uidHandler';
 
 // Mock Notice globally
 jest.mock('obsidian', () => ({
@@ -14,6 +15,7 @@ describe('CommandRegistry', () => {
   let mockApp: App;
   let mockActiveFile: TFile;
   let commandRegistry: CommandRegistry;
+  let mockUidHandler: UidHandler;
 
   beforeEach(() => {
     // Clear Notice mock
@@ -40,13 +42,20 @@ describe('CommandRegistry', () => {
       addYAMLKeys: jest.fn().mockResolvedValue(undefined)
     } as any;
 
-    commandRegistry = new CommandRegistry(mockPlugin, mockFileHandler);
+    mockUidHandler = {
+      addUidIfAbsent: jest.fn().mockResolvedValue(true),
+      addOrReplaceUid: jest.fn().mockResolvedValue(undefined),
+      addUidIfAbsentToFolder: jest.fn().mockResolvedValue(0),
+      addOrReplaceUidToFolder: jest.fn().mockResolvedValue(0)
+    } as any;
+
+    commandRegistry = new CommandRegistry(mockPlugin, mockFileHandler, mockUidHandler);
   });
 
-  it('should register three commands on registerCommands', () => {
+  it('should register seven commands on registerCommands', () => {
     commandRegistry.registerCommands();
 
-    expect(mockPlugin.addCommand).toHaveBeenCalledTimes(3);
+    expect(mockPlugin.addCommand).toHaveBeenCalledTimes(7);
     expect(mockPlugin.addCommand).toHaveBeenCalledWith(
       expect.objectContaining({
         id: 'last-opened-add-both-keys',
@@ -63,6 +72,12 @@ describe('CommandRegistry', () => {
       expect.objectContaining({
         id: 'last-opened-add-closed-key',
         name: 'Add only last-closed key'
+      })
+    );
+    expect(mockPlugin.addCommand).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'last-opened-uid-add-if-absent',
+        name: 'Add unique ID to YAML if not present'
       })
     );
   });
@@ -121,7 +136,7 @@ describe('CommandRegistry', () => {
     const { Notice } = require('obsidian');
 
     // Suppress console.error for this test
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
 
     await bothKeysCallback();
 

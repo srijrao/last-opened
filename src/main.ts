@@ -23,6 +23,9 @@ import { createTimestampGenerator } from './timestamp';
 import { createFileHandler, FileHandler } from './fileHandler';
 import { EventHandler } from './eventHandler';
 import { setupCommands } from './commands';
+import { UidHandler } from './uidHandler';
+import { ExtensionHandler } from './extensionHandler';
+import { registerFileExplorerMenus } from './contextMenus';
 
 /**
  * Temporary file handler interface for initialization
@@ -94,7 +97,10 @@ export default class LastOpenedPlugin extends Plugin {
 		eventHandler.cleanupStaleData();
 
 		// Step 9: Register user commands (what users can do via command palette)
-		setupCommands(this, fileHandler);
+		const uidHandler = new UidHandler(this.app, this.settings);
+		const extensionHandler = new ExtensionHandler(this.app, this.settings);
+		setupCommands(this, fileHandler, uidHandler);
+		registerFileExplorerMenus(this, extensionHandler);
 
 		// Step 10: Add settings tab
 		this.addSettingTab(new LastOpenedSettingTab(this.app, this));
@@ -148,7 +154,7 @@ export default class LastOpenedPlugin extends Plugin {
 	 */
 	async saveSettings(): Promise<void> {
 		await this.saveData(this.settings);
-		
+
 		// Update types.json when settings change (e.g., key names changed)
 		if (this.fileHandler) {
 			await this.fileHandler.updateTypesJson();
@@ -284,6 +290,85 @@ class LastOpenedSettingTab extends PluginSettingTab {
 				.setDynamicTooltip()
 				.onChange(async (value) => {
 					this.plugin.settings.historyDepth = value;
+					await this.plugin.saveSettings();
+				}));
+
+		// Unique ID section
+		containerEl.createEl('h3', { text: 'Unique ID' });
+
+		new Setting(containerEl)
+			.setName('UID Key')
+			.setDesc('YAML key name for generated unique IDs')
+			.addText(text => text
+				.setPlaceholder('uid')
+				.setValue(this.plugin.settings.uidKey)
+				.onChange(async (value) => {
+					const trimmed = value.trim();
+					this.plugin.settings.uidKey = trimmed || 'uid';
+					await this.plugin.saveSettings();
+				}));
+
+		// File extension section
+		containerEl.createEl('h3', { text: 'File Extensions' });
+
+		new Setting(containerEl)
+			.setName('Custom Convert From')
+			.setDesc('Source extension for custom folder conversion (without dot)')
+			.addText(text => text
+				.setPlaceholder('md')
+				.setValue(this.plugin.settings.customExtFrom)
+				.onChange(async (value) => {
+					this.plugin.settings.customExtFrom = value.replace(/^\./, '').trim().toLowerCase() || 'md';
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('Custom Convert To')
+			.setDesc('Target extension for custom folder conversion (without dot)')
+			.addText(text => text
+				.setPlaceholder('txt')
+				.setValue(this.plugin.settings.customExtTo)
+				.onChange(async (value) => {
+					this.plugin.settings.customExtTo = value.replace(/^\./, '').trim().toLowerCase() || 'txt';
+					await this.plugin.saveSettings();
+				}));
+
+		// Folder operation section
+		containerEl.createEl('h3', { text: 'Folder Operations' });
+
+		new Setting(containerEl)
+			.setName('Folder Recursion')
+			.setDesc('How folder actions should recurse through subfolders')
+			.addDropdown(dropdown => dropdown
+				.addOption('not-recursive', 'Only this folder')
+				.addOption('fully-recursive', 'Fully recursive')
+				.addOption('ask', 'Ask each time')
+				.addOption('depth', 'Recursive to X level')
+				.setValue(this.plugin.settings.folderRecursion)
+				.onChange(async (value: 'not-recursive' | 'fully-recursive' | 'ask' | 'depth') => {
+					this.plugin.settings.folderRecursion = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('Folder Recursion Depth')
+			.setDesc('Depth used when mode is Recursive to X level or Ask includes depth')
+			.addSlider(slider => slider
+				.setLimits(1, 10, 1)
+				.setValue(this.plugin.settings.folderRecursionDepth)
+				.setDynamicTooltip()
+				.onChange(async (value) => {
+					this.plugin.settings.folderRecursionDepth = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('Show Depth Option In Ask')
+			.setDesc('Include Recursive to X level in the Ask dialog')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.showRecursionDepthInAsk)
+				.onChange(async (value) => {
+					this.plugin.settings.showRecursionDepthInAsk = value;
 					await this.plugin.saveSettings();
 				}));
 

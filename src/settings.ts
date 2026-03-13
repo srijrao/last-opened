@@ -36,9 +36,27 @@ export interface LastOpenedSettings {
 	 * IANA timezone names like 'America/New_York' are also supported
 	 */
 	timezone: 'local' | 'utc' | string;
-	
+
 	/** How many historical entries to keep for each tracked key (1 = single value) */
 	historyDepth: number;
+
+	/** YAML key for unique IDs */
+	uidKey: string;
+
+	/** Source extension for custom folder conversion */
+	customExtFrom: string;
+
+	/** Target extension for custom folder conversion */
+	customExtTo: string;
+
+	/** Folder recursion behavior for folder actions */
+	folderRecursion: 'fully-recursive' | 'not-recursive' | 'ask' | 'depth';
+
+	/** Depth used when folderRecursion = 'depth' */
+	folderRecursionDepth: number;
+
+	/** Show depth choice in ask modal */
+	showRecursionDepthInAsk: boolean;
 }
 
 /**
@@ -54,7 +72,13 @@ export const DEFAULT_SETTINGS: LastOpenedSettings = {
 	trackOpened: true,
 	trackClosed: true,
 	timezone: 'local',
-	historyDepth: 1
+	historyDepth: 1,
+	uidKey: 'uid',
+	customExtFrom: 'md',
+	customExtTo: 'txt',
+	folderRecursion: 'not-recursive',
+	folderRecursionDepth: 1,
+	showRecursionDepthInAsk: false
 };
 
 /**
@@ -81,7 +105,13 @@ export function validateSettings(settings: unknown): boolean {
 		'trackOpened',
 		'trackClosed',
 		'timezone',
-		'historyDepth'
+		'historyDepth',
+		'uidKey',
+		'customExtFrom',
+		'customExtTo',
+		'folderRecursion',
+		'folderRecursionDepth',
+		'showRecursionDepthInAsk'
 	];
 
 	if (!requiredKeys.every(key => key in settings)) {
@@ -91,6 +121,23 @@ export function validateSettings(settings: unknown): boolean {
 	// Additional type checks
 	const s = settings as Record<string, unknown>;
 	if (typeof s.historyDepth !== 'number' || s.historyDepth < 1 || s.historyDepth > 5) {
+		return false;
+	}
+
+	if (typeof s.folderRecursionDepth !== 'number' || s.folderRecursionDepth < 1 || s.folderRecursionDepth > 10) {
+		return false;
+	}
+
+	const allowedRecursion = ['fully-recursive', 'not-recursive', 'ask', 'depth'];
+	if (!allowedRecursion.includes(s.folderRecursion as string)) {
+		return false;
+	}
+
+	if (typeof s.showRecursionDepthInAsk !== 'boolean') {
+		return false;
+	}
+
+	if (typeof s.uidKey !== 'string' || typeof s.customExtFrom !== 'string' || typeof s.customExtTo !== 'string') {
 		return false;
 	}
 

@@ -8,15 +8,20 @@
  * you'll see the commands defined here. Each one does a specific action.
  */
 
-import { Plugin, Notice } from 'obsidian';
+import { Plugin, Notice, TFolder } from 'obsidian';
 import { FileHandler } from './fileHandler';
+import { UidHandler } from './uidHandler';
 
 /**
  * CommandRegistry class manages all plugin commands
  * This keeps command logic organized and makes it easy to add new commands later
  */
 export class CommandRegistry {
-	constructor(private plugin: Plugin, private fileHandler: FileHandler) {}
+	constructor(
+		private plugin: Plugin,
+		private fileHandler: FileHandler,
+		private uidHandler: UidHandler
+	) { }
 
 	/**
 	 * Register all available commands for this plugin
@@ -24,6 +29,41 @@ export class CommandRegistry {
 	 */
 	registerCommands(): void {
 		this.registerAddKeysCommands();
+		this.registerUidCommands();
+	}
+
+	private registerUidCommands(): void {
+		this.plugin.addCommand({
+			id: 'last-opened-uid-add-if-absent',
+			name: 'Add unique ID to YAML if not present',
+			callback: async () => {
+				await this.addUidToCurrentNote(false);
+			}
+		});
+
+		this.plugin.addCommand({
+			id: 'last-opened-uid-add-or-replace',
+			name: 'Add/Replace unique ID to YAML',
+			callback: async () => {
+				await this.addUidToCurrentNote(true);
+			}
+		});
+
+		this.plugin.addCommand({
+			id: 'last-opened-uid-add-if-absent-folder',
+			name: 'Add unique ID to YAML if not present to folder',
+			callback: async () => {
+				await this.addUidToCurrentFolder(false);
+			}
+		});
+
+		this.plugin.addCommand({
+			id: 'last-opened-uid-add-or-replace-folder',
+			name: 'Add/Replace unique ID to YAML to folder',
+			callback: async () => {
+				await this.addUidToCurrentFolder(true);
+			}
+		});
 	}
 
 	/**
@@ -99,6 +139,53 @@ export class CommandRegistry {
 			);
 		}
 	}
+
+	private async addUidToCurrentNote(replace: boolean): Promise<void> {
+		const activeFile = this.plugin.app.workspace.getActiveFile();
+
+		if (!activeFile) {
+			new Notice('No note is currently open. Please open a note first.');
+			return;
+		}
+
+		try {
+			if (replace) {
+				await this.uidHandler.addOrReplaceUid(activeFile);
+				new Notice('✓ Added/Replaced unique ID in frontmatter');
+				return;
+			}
+
+			const updated = await this.uidHandler.addUidIfAbsent(activeFile);
+			new Notice(
+				updated
+					? '✓ Added unique ID in frontmatter'
+					: 'UID key already has a value, nothing changed'
+			);
+		} catch (error) {
+			console.error('Error adding UID to note:', error);
+			new Notice('✗ Failed to add unique ID. Please check the console for details.');
+		}
+	}
+
+	private async addUidToCurrentFolder(replace: boolean): Promise<void> {
+		const activeFile = this.plugin.app.workspace.getActiveFile();
+
+		if (!activeFile || !activeFile.parent || !(activeFile.parent instanceof TFolder)) {
+			new Notice('No folder context found. Open a note inside a folder first.');
+			return;
+		}
+
+		try {
+			const count = replace
+				? await this.uidHandler.addOrReplaceUidToFolder(activeFile.parent)
+				: await this.uidHandler.addUidIfAbsentToFolder(activeFile.parent);
+
+			new Notice(`✓ Updated ${count} file(s)`);
+		} catch (error) {
+			console.error('Error adding UID to folder:', error);
+			new Notice('✗ Failed to update folder UID values. Please check the console for details.');
+		}
+	}
 }
 
 /**
@@ -111,9 +198,10 @@ export class CommandRegistry {
  */
 export function setupCommands(
 	plugin: Plugin,
-	fileHandler: FileHandler
+	fileHandler: FileHandler,
+	uidHandler: UidHandler
 ): CommandRegistry {
-	const registry = new CommandRegistry(plugin, fileHandler);
+	const registry = new CommandRegistry(plugin, fileHandler, uidHandler);
 	registry.registerCommands();
 	return registry;
 }
