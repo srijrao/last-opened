@@ -62,7 +62,7 @@ describe('FileHandler types.json updates', () => {
 			expect(data.types[settings.dateClosedKey]).toBe('datetime');
 			expect(data.types[settings.lastViewKey]).toBe('datetime');
 			expect(data.types[settings.lastUnfocusKey]).toBe('datetime');
-			
+
 			// Check numbered keys
 			for (let i = 1; i <= 5; i++) {
 				expect(data.types[`${settings.dateOpenedKey}_${i}`]).toBe('datetime');
@@ -89,12 +89,12 @@ describe('FileHandler types.json updates', () => {
 
 			// Parse and verify content
 			const data = JSON.parse(content);
-			
+
 			// Check existing entries are preserved
 			expect(data.types.tags).toBe('tags');
 			expect(data.types.aliases).toBe('aliases');
 			expect(data.types.custom_field).toBe('text');
-			
+
 			// Check our entries were added
 			expect(data.types[settings.dateOpenedKey]).toBe('datetime');
 			expect(data.types[settings.dateClosedKey]).toBe('datetime');

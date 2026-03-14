@@ -43,7 +43,7 @@ export class EventHandler {
 	 */
 	private currentlyOpenFiles: Set<string> = new Set();
 
-	constructor(private plugin: Plugin, private fileHandler: FileHandlerLike) {}
+	constructor(private plugin: Plugin, private fileHandler: FileHandlerLike) { }
 
 	/**
 	 * Update the file handler instance

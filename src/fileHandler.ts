@@ -24,7 +24,7 @@ export class FileHandler {
 		private settings: LastOpenedSettings,
 		private timestampGenerator: TimestampGenerator,
 		private eventHandler: EventHandler
-	) {}
+	) { }
 
 	/**
 	 * Update a file's frontmatter with a timestamp for opening
@@ -112,10 +112,10 @@ export class FileHandler {
 				}
 
 				// Respect historyDepth: single string if 1, otherwise numbered keys
-			// Allow per-file override: `<baseKey>_history` numeric in frontmatter
-			// Cap at 5 for memory management
-			let depth = Math.min(5, Math.max(1, this.settings.historyDepth || 1));
-			const overrideKey = `${this.settings.dateOpenedKey}_history`;
+				// Allow per-file override: `<baseKey>_history` numeric in frontmatter
+				// Cap at 5 for memory management
+				let depth = Math.min(5, Math.max(1, this.settings.historyDepth || 1));
+				const overrideKey = `${this.settings.dateOpenedKey}_history`;
 				if (overrideKey in frontmatter) {
 					const ov = frontmatter[overrideKey];
 					const maybeNum = typeof ov === 'number' ? ov : parseInt(String(ov), 10);
@@ -136,39 +136,39 @@ export class FileHandler {
 							delete (frontmatter as Record<string, unknown>)[targetKey];
 						}
 					}
-				(frontmatter as Record<string, unknown>)[`${this.settings.dateOpenedKey}_1`] = openedTimestamp;
-				// Always set base key to newest
-				(frontmatter as Record<string, unknown>)[this.settings.dateOpenedKey] = openedTimestamp;
+					(frontmatter as Record<string, unknown>)[`${this.settings.dateOpenedKey}_1`] = openedTimestamp;
+					// Always set base key to newest
+					(frontmatter as Record<string, unknown>)[this.settings.dateOpenedKey] = openedTimestamp;
 
-				// Clean up any numbered keys beyond the per-file depth
-				if (depth === 1) {
-					// For depth 1, delete all numbered keys
-					for (const key of Object.keys(frontmatter)) {
-						const m = key.match(new RegExp(`^${this.settings.dateOpenedKey}_(\\d+)$`));
-						if (m) {
-							delete (frontmatter as Record<string, unknown>)[key];
-						}
-					}
-				} else {
-					for (const key of Object.keys(frontmatter)) {
-						const m = key.match(new RegExp(`^${this.settings.dateOpenedKey}_(\\d+)$`));
-						if (m) {
-							const idx = parseInt(m[1], 10);
-							if (idx > depth) {
+					// Clean up any numbered keys beyond the per-file depth
+					if (depth === 1) {
+						// For depth 1, delete all numbered keys
+						for (const key of Object.keys(frontmatter)) {
+							const m = key.match(new RegExp(`^${this.settings.dateOpenedKey}_(\\d+)$`));
+							if (m) {
 								delete (frontmatter as Record<string, unknown>)[key];
 							}
 						}
+					} else {
+						for (const key of Object.keys(frontmatter)) {
+							const m = key.match(new RegExp(`^${this.settings.dateOpenedKey}_(\\d+)$`));
+							if (m) {
+								const idx = parseInt(m[1], 10);
+								if (idx > depth) {
+									delete (frontmatter as Record<string, unknown>)[key];
+								}
+							}
+						}
 					}
-				}
 				}
 			}
 
 			// For closed key: always use current time (since we're adding it now)
 			if (keyType === 'both' || keyType === 'closed') {
 				const closedTimestamp = this.timestampGenerator.generateTimestamp();
-			// Cap at 5 for memory management
-			let depth = Math.min(5, Math.max(1, this.settings.historyDepth || 1));
-			const overrideKeyC = `${this.settings.dateClosedKey}_history`;
+				// Cap at 5 for memory management
+				let depth = Math.min(5, Math.max(1, this.settings.historyDepth || 1));
+				const overrideKeyC = `${this.settings.dateClosedKey}_history`;
 				if (overrideKeyC in frontmatter) {
 					const ov = frontmatter[overrideKeyC];
 					const maybeNum = typeof ov === 'number' ? ov : parseInt(String(ov), 10);
@@ -188,30 +188,30 @@ export class FileHandler {
 							delete (frontmatter as Record<string, unknown>)[targetKey];
 						}
 					}
-				(frontmatter as Record<string, unknown>)[`${this.settings.dateClosedKey}_1`] = closedTimestamp;
-				// Always set base key to newest
-				(frontmatter as Record<string, unknown>)[this.settings.dateClosedKey] = closedTimestamp;
+					(frontmatter as Record<string, unknown>)[`${this.settings.dateClosedKey}_1`] = closedTimestamp;
+					// Always set base key to newest
+					(frontmatter as Record<string, unknown>)[this.settings.dateClosedKey] = closedTimestamp;
 
-				// Clean up any numbered keys beyond the per-file depth
-				if (depth === 1) {
-					// For depth 1, delete all numbered keys
-					for (const key of Object.keys(frontmatter)) {
-						const m = key.match(new RegExp(`^${this.settings.dateClosedKey}_(\\d+)$`));
-						if (m) {
-							delete (frontmatter as Record<string, unknown>)[key];
-						}
-					}
-				} else {
-					for (const key of Object.keys(frontmatter)) {
-						const m = key.match(new RegExp(`^${this.settings.dateClosedKey}_(\\d+)$`));
-						if (m) {
-							const idx = parseInt(m[1], 10);
-							if (idx > depth) {
+					// Clean up any numbered keys beyond the per-file depth
+					if (depth === 1) {
+						// For depth 1, delete all numbered keys
+						for (const key of Object.keys(frontmatter)) {
+							const m = key.match(new RegExp(`^${this.settings.dateClosedKey}_(\\d+)$`));
+							if (m) {
 								delete (frontmatter as Record<string, unknown>)[key];
 							}
 						}
+					} else {
+						for (const key of Object.keys(frontmatter)) {
+							const m = key.match(new RegExp(`^${this.settings.dateClosedKey}_(\\d+)$`));
+							if (m) {
+								const idx = parseInt(m[1], 10);
+								if (idx > depth) {
+									delete (frontmatter as Record<string, unknown>)[key];
+								}
+							}
+						}
 					}
-				}
 				}
 			}
 		});
@@ -258,13 +258,13 @@ export class FileHandler {
 		try {
 			const configDir = this.app.vault.configDir;
 			const typesPath = `${configDir}/types.json`;
-			
+
 			// Read existing types.json or create new structure
 			let typesData: { types: Record<string, string> };
 			try {
 				const content = await this.app.vault.adapter.read(typesPath);
 				typesData = JSON.parse(content);
-				
+
 				// Ensure types object exists
 				if (!typesData.types || typeof typesData.types !== 'object') {
 					typesData = { types: {} };
@@ -277,13 +277,13 @@ export class FileHandler {
 			// Get all keys we need to register (base + numbered history keys)
 			const keysToRegister = new Set<string>();
 			const maxDepth = 5; // Maximum history depth supported
-			
+
 			// Add base keys
 			keysToRegister.add(this.settings.dateOpenedKey);
 			keysToRegister.add(this.settings.dateClosedKey);
 			keysToRegister.add(this.settings.lastViewKey);
 			keysToRegister.add(this.settings.lastUnfocusKey);
-			
+
 			// Add numbered keys for history (e.g., last_opened_1, last_opened_2, etc.)
 			for (let i = 1; i <= maxDepth; i++) {
 				keysToRegister.add(`${this.settings.dateOpenedKey}_${i}`);
