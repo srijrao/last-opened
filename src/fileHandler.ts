@@ -256,13 +256,22 @@ export class FileHandler {
 	 */
 	async updateTypesJson(): Promise<void> {
 		try {
-			const configDir = this.app.vault.configDir;
+			const configDir = this.app.vault?.configDir;
+			const adapter = this.app.vault?.adapter as {
+				read?: (path: string) => Promise<string>;
+				write?: (path: string, data: string) => Promise<void>;
+			};
+
+			if (!configDir || typeof adapter?.read !== 'function' || typeof adapter?.write !== 'function') {
+				return;
+			}
+
 			const typesPath = `${configDir}/types.json`;
 
 			// Read existing types.json or create new structure
 			let typesData: { types: Record<string, string> };
 			try {
-				const content = await this.app.vault.adapter.read(typesPath);
+				const content = await adapter.read(typesPath);
 				typesData = JSON.parse(content);
 
 				// Ensure types object exists
@@ -302,7 +311,7 @@ export class FileHandler {
 			// Only write if we made changes
 			if (hasChanges) {
 				const json = JSON.stringify(typesData, null, 2);
-				await this.app.vault.adapter.write(typesPath, json);
+				await adapter.write(typesPath, json);
 			}
 		} catch (error) {
 			console.error('Failed to update types.json:', error);
