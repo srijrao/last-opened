@@ -163,9 +163,34 @@ describe('FileHandler types.json updates', () => {
 		test('should not throw error if write fails', async () => {
 			mockAdapter.read.mockRejectedValue(new Error('File not found'));
 			mockAdapter.write.mockRejectedValue(new Error('Write failed'));
+			const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
 
 			// Should not throw
 			await expect(fileHandler.updateTypesJson()).resolves.not.toThrow();
+			expect(consoleSpy).toHaveBeenCalledWith(
+				'Failed to update types.json:',
+				expect.any(Error)
+			);
+
+			consoleSpy.mockRestore();
+		});
+
+		test('should safely skip types update when adapter capabilities are unavailable', async () => {
+			app = {
+				vault: {
+					configDir: '.obsidian'
+				}
+			} as any;
+
+			const timestampGenerator = createTimestampGenerator(settings);
+			fileHandler = new FileHandler(app, settings, timestampGenerator, mockEventHandler);
+
+			const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+
+			await expect(fileHandler.updateTypesJson()).resolves.not.toThrow();
+			expect(consoleSpy).not.toHaveBeenCalled();
+
+			consoleSpy.mockRestore();
 		});
 	});
 });
