@@ -1,7 +1,7 @@
 {
   "id": "last-opened",
   "name": "Last Opened",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "minAppVersion": "0.15.0",
   "description": "Obsidian plugin to track when notes are opened and closed",
   "author": "Justin Changalpet",

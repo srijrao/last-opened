@@ -1,6 +1,6 @@
 {
   "name": "last-opened",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Obsidian plugin to track when notes are opened and closed",
   "main": "main.js",
   "scripts": {
