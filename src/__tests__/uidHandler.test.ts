@@ -127,37 +127,37 @@ describe('UidHandler', () => {
         expect(processed).toEqual(['root/a.md']);
     });
 
-        it('findDuplicateUids should return markdown files sharing the same UID', async () => {
-            const handler = new UidHandler(app, {
-                uidKey: 'uid',
-                uidLength: 8,
-                folderRecursion: 'not-recursive'
-            } as any);
-            const first = new TFile();
-            first.path = 'root/a.md';
-            first.extension = 'md';
-            const second = new TFile();
-            second.path = 'root/b.md';
-            second.extension = 'md';
-            const third = new TFile();
-            third.path = 'root/c.md';
-            third.extension = 'md';
+    it('findDuplicateUids should return markdown files sharing the same UID', async () => {
+        const handler = new UidHandler(app, {
+            uidKey: 'uid',
+            uidLength: 8,
+            folderRecursion: 'not-recursive'
+        } as any);
+        const first = new TFile();
+        first.path = 'root/a.md';
+        first.extension = 'md';
+        const second = new TFile();
+        second.path = 'root/b.md';
+        second.extension = 'md';
+        const third = new TFile();
+        third.path = 'root/c.md';
+        third.extension = 'md';
 
-            const frontmatterByPath: Record<string, Record<string, unknown>> = {
-                'root/a.md': { uid: 'dup-1' },
-                'root/b.md': { uid: 'dup-1' },
-                'root/c.md': { uid: 'unique' }
-            };
+        const frontmatterByPath: Record<string, Record<string, unknown>> = {
+            'root/a.md': { uid: 'dup-1' },
+            'root/b.md': { uid: 'dup-1' },
+            'root/c.md': { uid: 'unique' }
+        };
 
-            app.vault.getMarkdownFiles = jest.fn().mockReturnValue([first, second, third]);
-            app.fileManager.processFrontMatter = jest.fn().mockImplementation(async (file: TFile, cb: (fm: Record<string, unknown>) => void) => {
-                cb(frontmatterByPath[file.path] ?? {});
-            });
-
-            const duplicates = await handler.findDuplicateUids();
-
-            expect(duplicates).toHaveLength(1);
-            expect(duplicates[0].uid).toBe('dup-1');
-            expect(duplicates[0].files.map((file) => file.path)).toEqual(['root/a.md', 'root/b.md']);
+        app.vault.getMarkdownFiles = jest.fn().mockReturnValue([first, second, third]);
+        app.fileManager.processFrontMatter = jest.fn().mockImplementation(async (file: TFile, cb: (fm: Record<string, unknown>) => void) => {
+            cb(frontmatterByPath[file.path] ?? {});
         });
+
+        const duplicates = await handler.findDuplicateUids();
+
+        expect(duplicates).toHaveLength(1);
+        expect(duplicates[0].uid).toBe('dup-1');
+        expect(duplicates[0].files.map((file) => file.path)).toEqual(['root/a.md', 'root/b.md']);
+    });
 });

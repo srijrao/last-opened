@@ -67,7 +67,7 @@ describe('context menu registration', () => {
             changeFolderCustom: jest.fn().mockResolvedValue({ modifiedFiles: 4, totalFiles: 5 })
         } as any;
 
-		const { Notice } = require('obsidian');
+        const { Notice } = require('obsidian');
 
         registerFileExplorerMenus(plugin, extensionHandler);
         const folder = new TFolder();
@@ -82,8 +82,8 @@ describe('context menu registration', () => {
         expect(extensionHandler.changeFolderTxtToMd).toHaveBeenCalledWith(folder);
         expect(extensionHandler.changeFolderMdToTxt).toHaveBeenCalledWith(folder);
         expect(extensionHandler.changeFolderCustom).toHaveBeenCalledWith(folder);
-		expect(Notice).toHaveBeenCalledWith('Changed extensions on 2 of 4 file(s).');
-		expect(Notice).toHaveBeenCalledWith('Changed extensions on 3 of 3 file(s).');
-		expect(Notice).toHaveBeenCalledWith('Changed extensions on 4 of 5 file(s).');
+        expect(Notice).toHaveBeenCalledWith('Changed extensions on 2 of 4 file(s).');
+        expect(Notice).toHaveBeenCalledWith('Changed extensions on 3 of 3 file(s).');
+        expect(Notice).toHaveBeenCalledWith('Changed extensions on 4 of 5 file(s).');
     });
 });

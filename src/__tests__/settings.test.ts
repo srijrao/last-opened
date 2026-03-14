@@ -50,9 +50,9 @@ describe('Settings', () => {
       expect(DEFAULT_SETTINGS.lastUnfocusKey).toBe('last_unfocus');
     });
 
-		it('should reject invalid UID length', () => {
-			const invalidSettings = { ...DEFAULT_SETTINGS, uidLength: 2 };
-			expect(validateSettings(invalidSettings)).toBe(false);
-		});
+    it('should reject invalid UID length', () => {
+      const invalidSettings = { ...DEFAULT_SETTINGS, uidLength: 2 };
+      expect(validateSettings(invalidSettings)).toBe(false);
+    });
   });
 });
