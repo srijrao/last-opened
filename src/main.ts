@@ -183,6 +183,8 @@ class LastOpenedSettingTab extends PluginSettingTab {
 		const { containerEl } = this;
 		containerEl.empty();
 
+		let timezoneSetting: Setting | null = null;
+
 		containerEl.createEl('h2', { text: 'Last Opened Plugin Settings' });
 
 		// YAML Keys section
@@ -192,12 +194,12 @@ class LastOpenedSettingTab extends PluginSettingTab {
 			.setName('Opened Key')
 			.setDesc('YAML key name for tracking when notes are opened')
 			.addText(text => text
-				.setPlaceholder('date_last_opened')
+				.setPlaceholder('last_opened')
 				.setValue(this.plugin.settings.dateOpenedKey)
 				.onChange(async (value) => {
 					// Handle empty values gracefully - use defaults
 					const trimmed = value.trim();
-					const finalValue = trimmed || 'date_last_opened'; // Default if empty
+					const finalValue = trimmed || 'last_opened'; // Default if empty
 
 					// Check for duplicate keys (only if both are non-empty)
 					if (finalValue && finalValue === this.plugin.settings.dateClosedKey) {
@@ -216,12 +218,12 @@ class LastOpenedSettingTab extends PluginSettingTab {
 			.setName('Closed Key')
 			.setDesc('YAML key name for tracking when notes are closed')
 			.addText(text => text
-				.setPlaceholder('date_last_closed')
+				.setPlaceholder('last_closed')
 				.setValue(this.plugin.settings.dateClosedKey)
 				.onChange(async (value) => {
 					// Handle empty values gracefully - use defaults
 					const trimmed = value.trim();
-					const finalValue = trimmed || 'date_last_closed'; // Default if empty
+					const finalValue = trimmed || 'last_closed'; // Default if empty
 
 					// Check for duplicate keys (only if both are non-empty)
 					if (finalValue && finalValue === this.plugin.settings.dateOpenedKey) {
@@ -239,29 +241,65 @@ class LastOpenedSettingTab extends PluginSettingTab {
 		// Time Format section
 		containerEl.createEl('h3', { text: 'Time Format' });
 
+		const syncTimezoneSettingState = (): void => {
+			if (!timezoneSetting) {
+				return;
+			}
+
+			const utcFormatSelected = this.plugin.settings.dateFormat === 'UTC';
+			timezoneSetting.setDesc(
+				utcFormatSelected
+					? 'Timezone is locked to UTC when Date Format is set to UTC'
+					: 'Timezone used for ISO 8601 with offset format'
+			);
+
+			if (utcFormatSelected) {
+				timezoneSetting.components.forEach(component => {
+					component.setDisabled(true);
+				});
+			} else {
+				timezoneSetting.components.forEach(component => {
+					component.setDisabled(false);
+				});
+			}
+		};
+
 		new Setting(containerEl)
 			.setName('Date Format')
-			.setDesc('Format for timestamps')
+			.setDesc('Timestamp output format')
 			.addDropdown(dropdown => dropdown
-				.addOption('YYYY-MM-DDTHH:mm:ssZ', 'Local with offset (2025-11-11T14:00:00-06:00)')
-				.addOption('UTC', 'UTC (2025-11-11T20:00:00.000Z)')
+				.addOption('YYYY-MM-DDTHH:mm:ssZ', 'ISO 8601 with timezone from setting below')
+				.addOption('UTC', 'Force UTC ISO output (timezone setting is ignored)')
 				.setValue(this.plugin.settings.dateFormat)
 				.onChange(async (value: 'YYYY-MM-DDTHH:mm:ssZ' | 'UTC') => {
 					this.plugin.settings.dateFormat = value;
+
+					if (value === 'UTC') {
+						this.plugin.settings.timezone = 'utc';
+					}
+
 					await this.plugin.saveSettings();
+					syncTimezoneSettingState();
 				}));
 
-		new Setting(containerEl)
+		timezoneSetting = new Setting(containerEl)
 			.setName('Timezone')
-			.setDesc('Timezone for timestamps')
+			.setDesc('Timezone used for ISO 8601 with offset format')
 			.addDropdown(dropdown => dropdown
-				.addOption('local', 'Local time with offset')
-				.addOption('utc', 'UTC time')
+				.addOption('local', 'Use local clock time with UTC offset')
+				.addOption('utc', 'Use UTC clock time')
 				.setValue(this.plugin.settings.timezone)
 				.onChange(async (value: 'local' | 'utc') => {
+					if (this.plugin.settings.dateFormat === 'UTC') {
+						dropdown.setValue('utc');
+						return;
+					}
+
 					this.plugin.settings.timezone = value;
 					await this.plugin.saveSettings();
 				}));
+
+		syncTimezoneSettingState();
 
 		// Tracking Options section
 		containerEl.createEl('h3', { text: 'Tracking Options' });
