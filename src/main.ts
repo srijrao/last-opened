@@ -122,6 +122,7 @@ export default class LastOpenedPlugin extends Plugin {
 	async onunload(): Promise<void> {
 		// Save opening times before unloading
 		if (this.eventHandler) {
+			this.eventHandler.cleanupGlobalListeners();
 			await this.eventHandler.saveOpeningTimes();
 		}
 		console.log('Last Opened Plugin unloaded');

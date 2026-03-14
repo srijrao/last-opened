@@ -150,14 +150,22 @@ export class CommandRegistry {
 
 		try {
 			await this.fileHandler.addYAMLKeys(activeFile, keyType);
+			const pluginWithSettings = this.plugin as Plugin & {
+				settings?: {
+					dateOpenedKey?: string;
+					dateClosedKey?: string;
+				};
+			};
+			const openedKey = pluginWithSettings.settings?.dateOpenedKey || 'last_opened';
+			const closedKey = pluginWithSettings.settings?.dateClosedKey || 'last_closed';
 
 			// Show success message
 			const keyNames =
 				keyType === 'both'
 					? 'keys'
 					: keyType === 'opened'
-						? 'date_last_opened'
-						: 'date_last_closed';
+						? openedKey
+						: closedKey;
 
 			new Notice(`✓ Added ${keyNames} to the note's frontmatter`);
 		} catch (error) {

@@ -29,6 +29,7 @@ interface FileHandlerLike {
 export class EventHandler {
 	private lastActiveFile: TFile | null = null;
 	private lastFocusedLeaf: unknown = null;
+	private beforeUnloadHandler: (() => void) | null = null;
 
 	/**
 	 * Track when each file was opened
@@ -88,10 +89,23 @@ export class EventHandler {
 		// Register for application shutdown
 		// This ensures we update the "closed" timestamp even when quitting Obsidian
 		this.plugin.app.workspace.onLayoutReady(() => {
-			window.addEventListener('beforeunload', () => {
-				this.handleApplicationClose();
-			});
+			if (!this.beforeUnloadHandler) {
+				this.beforeUnloadHandler = () => {
+					void this.handleApplicationClose();
+				};
+				window.addEventListener('beforeunload', this.beforeUnloadHandler);
+			}
 		});
+	}
+
+	/**
+	 * Remove global listeners that are not automatically managed by plugin APIs.
+	 */
+	cleanupGlobalListeners(): void {
+		if (this.beforeUnloadHandler) {
+			window.removeEventListener('beforeunload', this.beforeUnloadHandler);
+			this.beforeUnloadHandler = null;
+		}
 	}
 
 	private isFocusTrackingEnabled(): boolean {
@@ -225,7 +239,10 @@ export class EventHandler {
 			for (const [path, date] of this.fileOpeningTimes) {
 				timesObject[path] = date.toISOString();
 			}
-			await this.plugin.saveData({ openingTimes: timesObject });
+
+			// Preserve existing plugin data (such as settings) and only replace openingTimes
+			const existingData = (await this.plugin.loadData()) || {};
+			await this.plugin.saveData({ ...existingData, openingTimes: timesObject });
 		} catch (error) {
 			console.error('Failed to save opening times:', error);
 		}
