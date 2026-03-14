@@ -34,6 +34,7 @@ describe('Settings', () => {
       expect(DEFAULT_SETTINGS).toHaveProperty('trackFocusChanges');
       expect(DEFAULT_SETTINGS).toHaveProperty('lastViewKey');
       expect(DEFAULT_SETTINGS).toHaveProperty('lastUnfocusKey');
+      expect(DEFAULT_SETTINGS).toHaveProperty('uidLength');
     });
 
     it('should have sensible default values', () => {
@@ -43,9 +44,15 @@ describe('Settings', () => {
       expect(DEFAULT_SETTINGS.trackOpened).toBe(true);
       expect(DEFAULT_SETTINGS.trackClosed).toBe(true);
       expect(DEFAULT_SETTINGS.timezone).toBe('local');
+      expect(DEFAULT_SETTINGS.uidLength).toBe(8);
       expect(DEFAULT_SETTINGS.trackFocusChanges).toBe(false);
       expect(DEFAULT_SETTINGS.lastViewKey).toBe('last_view');
       expect(DEFAULT_SETTINGS.lastUnfocusKey).toBe('last_unfocus');
     });
+
+		it('should reject invalid UID length', () => {
+			const invalidSettings = { ...DEFAULT_SETTINGS, uidLength: 2 };
+			expect(validateSettings(invalidSettings)).toBe(false);
+		});
   });
 });

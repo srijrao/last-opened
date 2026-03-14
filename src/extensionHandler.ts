@@ -2,6 +2,13 @@ import { App, TFile, TFolder } from 'obsidian';
 import { LastOpenedSettings } from './settings';
 import { getFilesInFolder } from './folderUtils';
 
+export interface FolderExtensionChangeResult {
+    modifiedFiles: number;
+    totalFiles: number;
+    fromExtension: string;
+    toExtension: string;
+}
+
 function normalizeExtension(value: string): string {
     return value.replace(/^\./, '').trim().toLowerCase();
 }
@@ -39,11 +46,16 @@ export class ExtensionHandler {
         return this.changeExtension(file, 'md');
     }
 
-    async changeFolderExtensions(folder: TFolder, fromExt: string, toExt: string): Promise<number> {
+    async changeFolderExtensions(folder: TFolder, fromExt: string, toExt: string): Promise<FolderExtensionChangeResult> {
         const from = normalizeExtension(fromExt);
         const to = normalizeExtension(toExt);
         if (!from || !to || from === to) {
-            return 0;
+            return {
+                modifiedFiles: 0,
+                totalFiles: 0,
+                fromExtension: from,
+                toExtension: to
+            };
         }
 
         const files = await getFilesInFolder(
@@ -53,21 +65,29 @@ export class ExtensionHandler {
             (file) => file.extension.toLowerCase() === from
         );
 
+        let modifiedFiles = 0;
         for (const file of files) {
-            await this.changeExtension(file, to);
+            if (await this.changeExtension(file, to)) {
+                modifiedFiles += 1;
+            }
         }
-        return files.length;
+        return {
+            modifiedFiles,
+            totalFiles: files.length,
+            fromExtension: from,
+            toExtension: to
+        };
     }
 
-    async changeFolderTxtToMd(folder: TFolder): Promise<number> {
+    async changeFolderTxtToMd(folder: TFolder): Promise<FolderExtensionChangeResult> {
         return this.changeFolderExtensions(folder, 'txt', 'md');
     }
 
-    async changeFolderMdToTxt(folder: TFolder): Promise<number> {
+    async changeFolderMdToTxt(folder: TFolder): Promise<FolderExtensionChangeResult> {
         return this.changeFolderExtensions(folder, 'md', 'txt');
     }
 
-    async changeFolderCustom(folder: TFolder): Promise<number> {
+    async changeFolderCustom(folder: TFolder): Promise<FolderExtensionChangeResult> {
         return this.changeFolderExtensions(
             folder,
             this.settings.customExtFrom,

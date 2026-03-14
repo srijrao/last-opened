@@ -58,8 +58,13 @@ describe('ExtensionHandler', () => {
             folderRecursion: 'not-recursive'
         } as any);
 
-        const count = await handler.changeFolderTxtToMd(folder);
-        expect(count).toBe(1);
+        const result = await handler.changeFolderTxtToMd(folder);
+        expect(result).toEqual({
+            modifiedFiles: 1,
+            totalFiles: 1,
+            fromExtension: 'txt',
+            toExtension: 'md'
+        });
         expect(app.vault.rename).toHaveBeenCalledTimes(1);
         expect(app.vault.rename).toHaveBeenCalledWith(a, 'root/a.md');
     });

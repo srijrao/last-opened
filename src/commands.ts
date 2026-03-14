@@ -12,6 +12,26 @@ import { Plugin, Notice, TFolder } from 'obsidian';
 import { FileHandler } from './fileHandler';
 import { UidHandler } from './uidHandler';
 
+function formatUidFolderSummary(action: string, modifiedFiles: number, totalFiles: number): string {
+	return `${action} ${modifiedFiles} of ${totalFiles} file(s)`;
+}
+
+function formatDuplicateUidNotice(
+	groups: Array<{ uid: string; files: Array<{ path: string }> }>
+): string {
+	const duplicateFileCount = groups.reduce((total, group) => total + group.files.length, 0);
+	const lines = [`Found ${groups.length} duplicate UID value(s) across ${duplicateFileCount} file(s):`];
+
+	for (const group of groups) {
+		lines.push(`UID \"${group.uid}\"`);
+		for (const file of group.files) {
+			lines.push(`- ${file.path}`);
+		}
+	}
+
+	return lines.join('\n');
+}
+
 /**
  * CommandRegistry class manages all plugin commands
  * This keeps command logic organized and makes it easy to add new commands later
@@ -62,6 +82,14 @@ export class CommandRegistry {
 			name: 'Add/Replace unique ID to YAML to folder',
 			callback: async () => {
 				await this.addUidToCurrentFolder(true);
+			}
+		});
+
+		this.plugin.addCommand({
+			id: 'last-opened-uid-find-duplicates',
+			name: 'Find files with duplicate unique IDs',
+			callback: async () => {
+				await this.findDuplicateUids();
 			}
 		});
 	}
@@ -176,14 +204,36 @@ export class CommandRegistry {
 		}
 
 		try {
-			const count = replace
+			const result = replace
 				? await this.uidHandler.addOrReplaceUidToFolder(activeFile.parent)
 				: await this.uidHandler.addUidIfAbsentToFolder(activeFile.parent);
 
-			new Notice(`✓ Updated ${count} file(s)`);
+			new Notice(
+				replace
+					? formatUidFolderSummary('Replaced UIDs in', result.modifiedFiles, result.totalFiles)
+					: formatUidFolderSummary('Added UIDs to', result.modifiedFiles, result.totalFiles)
+			);
 		} catch (error) {
 			console.error('Error adding UID to folder:', error);
 			new Notice('✗ Failed to update folder UID values. Please check the console for details.');
+		}
+	}
+
+	private async findDuplicateUids(): Promise<void> {
+		try {
+			const groups = await this.uidHandler.findDuplicateUids();
+
+			if (groups.length === 0) {
+				new Notice('No duplicate UIDs found.');
+				return;
+			}
+
+			const message = formatDuplicateUidNotice(groups);
+			console.warn(message);
+			new Notice(message);
+		} catch (error) {
+			console.error('Error finding duplicate UIDs:', error);
+			new Notice('✗ Failed to scan for duplicate UIDs. Please check the console for details.');
 		}
 	}
 }

@@ -43,6 +43,9 @@ export interface LastOpenedSettings {
 	/** YAML key for unique IDs */
 	uidKey: string;
 
+	/** Length used when generating unique IDs */
+	uidLength: number;
+
 	/** Source extension for custom folder conversion */
 	customExtFrom: string;
 
@@ -83,6 +86,7 @@ export const DEFAULT_SETTINGS: LastOpenedSettings = {
 	timezone: 'local',
 	historyDepth: 1,
 	uidKey: 'uid',
+	uidLength: 8,
 	customExtFrom: 'md',
 	customExtTo: 'txt',
 	folderRecursion: 'not-recursive',
@@ -119,6 +123,7 @@ export function validateSettings(settings: unknown): boolean {
 		'timezone',
 		'historyDepth',
 		'uidKey',
+		'uidLength',
 		'customExtFrom',
 		'customExtTo',
 		'folderRecursion',
@@ -136,6 +141,10 @@ export function validateSettings(settings: unknown): boolean {
 	// Additional type checks
 	const s = settings as Record<string, unknown>;
 	if (typeof s.historyDepth !== 'number' || s.historyDepth < 1 || s.historyDepth > 5) {
+		return false;
+	}
+
+	if (typeof s.uidLength !== 'number' || s.uidLength < 4 || s.uidLength > 32) {
 		return false;
 	}
 
@@ -158,6 +167,7 @@ export function validateSettings(settings: unknown): boolean {
 
 	if (
 		typeof s.uidKey !== 'string' ||
+		typeof s.uidLength !== 'number' ||
 		typeof s.customExtFrom !== 'string' ||
 		typeof s.customExtTo !== 'string' ||
 		typeof s.lastViewKey !== 'string' ||

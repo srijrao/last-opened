@@ -1,6 +1,10 @@
 import { Menu, Notice, Plugin, TAbstractFile, TFile, TFolder } from 'obsidian';
 import { ExtensionHandler } from './extensionHandler';
 
+function showFolderExtensionNotice(action: string, modifiedFiles: number, totalFiles: number): void {
+    new Notice(`${action} ${modifiedFiles} of ${totalFiles} file(s).`);
+}
+
 export function registerFileExplorerMenus(
     plugin: Plugin,
     extensionHandler: ExtensionHandler
@@ -51,8 +55,8 @@ function addFolderMenuItems(menu: Menu, folder: TFolder, extensionHandler: Exten
             .setTitle('Change all .txt files to .md')
             .setIcon('folder-sync')
             .onClick(async () => {
-                const count = await extensionHandler.changeFolderTxtToMd(folder);
-                new Notice(`Changed ${count} file extension(s).`);
+                const result = await extensionHandler.changeFolderTxtToMd(folder);
+                showFolderExtensionNotice('Changed extensions on', result.modifiedFiles, result.totalFiles);
             })
     );
 
@@ -61,8 +65,8 @@ function addFolderMenuItems(menu: Menu, folder: TFolder, extensionHandler: Exten
             .setTitle('Change all .md files to .txt')
             .setIcon('folder-sync')
             .onClick(async () => {
-                const count = await extensionHandler.changeFolderMdToTxt(folder);
-                new Notice(`Changed ${count} file extension(s).`);
+                const result = await extensionHandler.changeFolderMdToTxt(folder);
+                showFolderExtensionNotice('Changed extensions on', result.modifiedFiles, result.totalFiles);
             })
     );
 
@@ -71,8 +75,8 @@ function addFolderMenuItems(menu: Menu, folder: TFolder, extensionHandler: Exten
             .setTitle('Change all custom extension files')
             .setIcon('settings')
             .onClick(async () => {
-                const count = await extensionHandler.changeFolderCustom(folder);
-                new Notice(`Changed ${count} file extension(s).`);
+                const result = await extensionHandler.changeFolderCustom(folder);
+                showFolderExtensionNotice('Changed extensions on', result.modifiedFiles, result.totalFiles);
             })
     );
 }

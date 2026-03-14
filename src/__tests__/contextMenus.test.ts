@@ -1,6 +1,11 @@
 import { Menu, Plugin, TFile, TFolder } from 'obsidian';
 import { registerFileExplorerMenus } from '../contextMenus';
 
+jest.mock('obsidian', () => ({
+    ...jest.requireActual('obsidian'),
+    Notice: jest.fn()
+}));
+
 describe('context menu registration', () => {
     it('adds file menu items and invokes extension handlers', async () => {
         let listener: ((menu: Menu, file: any) => void) | null = null;
@@ -19,9 +24,9 @@ describe('context menu registration', () => {
         const extensionHandler = {
             changeExtToTxt: jest.fn().mockResolvedValue(true),
             changeExtToMd: jest.fn().mockResolvedValue(true),
-            changeFolderTxtToMd: jest.fn().mockResolvedValue(2),
-            changeFolderMdToTxt: jest.fn().mockResolvedValue(3),
-            changeFolderCustom: jest.fn().mockResolvedValue(4)
+            changeFolderTxtToMd: jest.fn().mockResolvedValue({ modifiedFiles: 2, totalFiles: 4 }),
+            changeFolderMdToTxt: jest.fn().mockResolvedValue({ modifiedFiles: 3, totalFiles: 3 }),
+            changeFolderCustom: jest.fn().mockResolvedValue({ modifiedFiles: 4, totalFiles: 5 })
         } as any;
 
         registerFileExplorerMenus(plugin, extensionHandler);
@@ -57,10 +62,12 @@ describe('context menu registration', () => {
         const extensionHandler = {
             changeExtToTxt: jest.fn().mockResolvedValue(true),
             changeExtToMd: jest.fn().mockResolvedValue(true),
-            changeFolderTxtToMd: jest.fn().mockResolvedValue(2),
-            changeFolderMdToTxt: jest.fn().mockResolvedValue(3),
-            changeFolderCustom: jest.fn().mockResolvedValue(4)
+            changeFolderTxtToMd: jest.fn().mockResolvedValue({ modifiedFiles: 2, totalFiles: 4 }),
+            changeFolderMdToTxt: jest.fn().mockResolvedValue({ modifiedFiles: 3, totalFiles: 3 }),
+            changeFolderCustom: jest.fn().mockResolvedValue({ modifiedFiles: 4, totalFiles: 5 })
         } as any;
+
+		const { Notice } = require('obsidian');
 
         registerFileExplorerMenus(plugin, extensionHandler);
         const folder = new TFolder();
@@ -75,5 +82,8 @@ describe('context menu registration', () => {
         expect(extensionHandler.changeFolderTxtToMd).toHaveBeenCalledWith(folder);
         expect(extensionHandler.changeFolderMdToTxt).toHaveBeenCalledWith(folder);
         expect(extensionHandler.changeFolderCustom).toHaveBeenCalledWith(folder);
+		expect(Notice).toHaveBeenCalledWith('Changed extensions on 2 of 4 file(s).');
+		expect(Notice).toHaveBeenCalledWith('Changed extensions on 3 of 3 file(s).');
+		expect(Notice).toHaveBeenCalledWith('Changed extensions on 4 of 5 file(s).');
     });
 });

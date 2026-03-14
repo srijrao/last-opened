@@ -19,6 +19,9 @@ This plugin operates on notes in Obsidian that contain specific YAML keys. By de
     - Updates on plugin load and whenever settings change
     - Preserves existing property type definitions
     - Registers base keys and all numbered history keys (e.g., `last_opened_1`, `last_opened_2`, etc.)
+- **UID Tools:** Generate configurable-length unique IDs, update entire folders with summary notices, and scan the vault for duplicate IDs.
+   - Folder commands report how many markdown files were modified out of the total files considered
+   - Duplicate UID scan lists every affected file so copied frontmatter is easy to clean up
 
 ### Future Plans
 - **Additional Timestamps:** Future versions may add support for tracking and adding timestamps for other events in the YAML frontmatter. This is not included in the current version.
@@ -148,6 +151,11 @@ Contains the `CommandRegistry` class which:
 1. "Add last-opened and last-closed keys" - Adds both keys with current timestamp
 2. "Add only last-opened key" - Adds just the opened key
 3. "Add only last-closed key" - Adds just the closed key
+4. "Add unique ID to YAML if not present" - Adds a generated UID to the active note only when missing
+5. "Add/Replace unique ID to YAML" - Always writes a new generated UID to the active note
+6. "Add unique ID to YAML if not present to folder" - Updates markdown files in the active note's folder and reports modified versus eligible files
+7. "Add/Replace unique ID to YAML to folder" - Rewrites UIDs for markdown files in the active note's folder and reports modified versus eligible files
+8. "Find files with duplicate unique IDs" - Scans all markdown files and lists duplicate UID collisions
 
 **How users access them:**
 1. Press `Ctrl+P` (or `Cmd+P` on Mac)

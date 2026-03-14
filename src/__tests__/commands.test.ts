@@ -1,6 +1,6 @@
 import { CommandRegistry } from '../commands';
 import { FileHandler } from '../fileHandler';
-import { App, TFile } from 'obsidian';
+import { App, TFile, TFolder } from 'obsidian';
 import { UidHandler } from '../uidHandler';
 
 // Mock Notice globally
@@ -24,6 +24,8 @@ describe('CommandRegistry', () => {
     // Mock active file
     mockActiveFile = new TFile();
     mockActiveFile.path = 'test.md';
+    mockActiveFile.parent = new TFolder();
+    (mockActiveFile.parent as unknown as { path: string }).path = 'notes';
 
     // Mock app with workspace
     mockApp = new App();
@@ -45,17 +47,18 @@ describe('CommandRegistry', () => {
     mockUidHandler = {
       addUidIfAbsent: jest.fn().mockResolvedValue(true),
       addOrReplaceUid: jest.fn().mockResolvedValue(undefined),
-      addUidIfAbsentToFolder: jest.fn().mockResolvedValue(0),
-      addOrReplaceUidToFolder: jest.fn().mockResolvedValue(0)
+      addUidIfAbsentToFolder: jest.fn().mockResolvedValue({ modifiedFiles: 2, totalFiles: 3 }),
+      addOrReplaceUidToFolder: jest.fn().mockResolvedValue({ modifiedFiles: 3, totalFiles: 3 }),
+      findDuplicateUids: jest.fn().mockResolvedValue([])
     } as any;
 
     commandRegistry = new CommandRegistry(mockPlugin, mockFileHandler, mockUidHandler);
   });
 
-  it('should register seven commands on registerCommands', () => {
+  it('should register eight commands on registerCommands', () => {
     commandRegistry.registerCommands();
 
-    expect(mockPlugin.addCommand).toHaveBeenCalledTimes(7);
+    expect(mockPlugin.addCommand).toHaveBeenCalledTimes(8);
     expect(mockPlugin.addCommand).toHaveBeenCalledWith(
       expect.objectContaining({
         id: 'last-opened-add-both-keys',
@@ -78,6 +81,12 @@ describe('CommandRegistry', () => {
       expect.objectContaining({
         id: 'last-opened-uid-add-if-absent',
         name: 'Add unique ID to YAML if not present'
+      })
+    );
+    expect(mockPlugin.addCommand).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'last-opened-uid-find-duplicates',
+        name: 'Find files with duplicate unique IDs'
       })
     );
   });
@@ -142,6 +151,40 @@ describe('CommandRegistry', () => {
 
     expect(consoleSpy).toHaveBeenCalledWith('Error adding keys to note:', expect.any(Error));
     expect(Notice).toHaveBeenCalledWith('✗ Failed to add keys. Please check the console for details.');
+
+    consoleSpy.mockRestore();
+  });
+
+  it('should summarize folder UID updates for add-if-absent', async () => {
+    commandRegistry.registerCommands();
+    const addUidFolderCallback = (mockPlugin.addCommand as jest.Mock).mock.calls[5][0].callback;
+    const { Notice } = require('obsidian');
+
+    await addUidFolderCallback();
+
+    expect(mockUidHandler.addUidIfAbsentToFolder).toHaveBeenCalledWith(mockActiveFile.parent);
+    expect(Notice).toHaveBeenCalledWith('Added UIDs to 2 of 3 file(s)');
+  });
+
+  it('should report duplicate UID files when duplicates exist', async () => {
+    mockUidHandler.findDuplicateUids = jest.fn().mockResolvedValue([
+      {
+        uid: 'dup-1',
+        files: [{ path: 'notes/a.md' }, { path: 'notes/b.md' }]
+      }
+    ]);
+    commandRegistry = new CommandRegistry(mockPlugin, mockFileHandler, mockUidHandler);
+    commandRegistry.registerCommands();
+    const duplicateCommandCallback = (mockPlugin.addCommand as jest.Mock).mock.calls[7][0].callback;
+    const { Notice } = require('obsidian');
+    const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => { });
+
+    await duplicateCommandCallback();
+
+    expect(mockUidHandler.findDuplicateUids).toHaveBeenCalledTimes(1);
+    expect(Notice).toHaveBeenCalledWith(expect.stringContaining('UID "dup-1"'));
+    expect(Notice).toHaveBeenCalledWith(expect.stringContaining('notes/a.md'));
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('notes/b.md'));
 
     consoleSpy.mockRestore();
   });

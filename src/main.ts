@@ -344,6 +344,18 @@ class LastOpenedSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
+		new Setting(containerEl)
+			.setName('UID Length')
+			.setDesc('Length for generated unique IDs (4-32 characters)')
+			.addSlider(slider => slider
+				.setLimits(4, 32, 1)
+				.setValue(this.plugin.settings.uidLength)
+				.setDynamicTooltip()
+				.onChange(async (value) => {
+					this.plugin.settings.uidLength = value;
+					await this.plugin.saveSettings();
+				}));
+
 		// File extension section
 		containerEl.createEl('h3', { text: 'File Extensions' });
 
