@@ -25,7 +25,7 @@ describe('FileHandler living documentation', () => {
             vault: {
                 configDir: '.obsidian'
             }
-        } as App;
+        } as unknown as App;
 
         const fileHandler = new FileHandler(
             app,
@@ -51,7 +51,7 @@ describe('FileHandler living documentation', () => {
             fileManager: {
                 processFrontMatter
             }
-        } as App;
+        } as unknown as App;
 
         const fileHandler = new FileHandler(
             app,
@@ -79,7 +79,7 @@ describe('FileHandler living documentation', () => {
             fileManager: {
                 processFrontMatter
             }
-        } as App;
+        } as unknown as App;
 
         const fileHandler = new FileHandler(
             app,
