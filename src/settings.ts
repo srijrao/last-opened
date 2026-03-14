@@ -20,8 +20,8 @@ export interface LastOpenedSettings {
 	/** YAML key name for tracking when a note was closed */
 	dateClosedKey: string;
 
-	/** Format string for timestamps */
-	dateFormat: 'YYYY-MM-DDTHH:mm:ssZ' | 'UTC';
+	/** Unified timestamp mode that controls both format and timezone behavior */
+	timestampMode: 'local-iso-offset' | 'utc-iso';
 
 	/** Whether to track opening timestamps */
 	trackOpened: boolean;
@@ -30,12 +30,16 @@ export interface LastOpenedSettings {
 	trackClosed: boolean;
 
 	/**
-	 * Timezone setting for timestamps
-	 * 'local' = local time with UTC offset (default)
-	 * 'utc' = UTC/GMT time
-	 * IANA timezone names like 'America/New_York' are also supported
+	 * @deprecated Legacy format field kept for migration compatibility.
+	 * New code should use timestampMode.
 	 */
-	timezone: 'local' | 'utc' | string;
+	dateFormat?: 'YYYY-MM-DDTHH:mm:ssZ' | 'UTC';
+
+	/**
+	 * @deprecated Legacy timezone field kept for migration compatibility.
+	 * New code should use timestampMode.
+	 */
+	timezone?: 'local' | 'utc' | string;
 
 	/** How many historical entries to keep for each tracked key (1 = single value) */
 	historyDepth: number;
@@ -80,10 +84,9 @@ export interface LastOpenedSettings {
 export const DEFAULT_SETTINGS: LastOpenedSettings = {
 	dateOpenedKey: 'last_opened',
 	dateClosedKey: 'last_closed',
-	dateFormat: 'YYYY-MM-DDTHH:mm:ssZ', // Local time with offset
+	timestampMode: 'local-iso-offset',
 	trackOpened: true,
 	trackClosed: true,
-	timezone: 'local',
 	historyDepth: 1,
 	uidKey: 'uid',
 	uidLength: 8,
@@ -117,10 +120,9 @@ export function validateSettings(settings: unknown): boolean {
 	const requiredKeys: (keyof LastOpenedSettings)[] = [
 		'dateOpenedKey',
 		'dateClosedKey',
-		'dateFormat',
+		'timestampMode',
 		'trackOpened',
 		'trackClosed',
-		'timezone',
 		'historyDepth',
 		'uidKey',
 		'uidLength',
@@ -176,8 +178,8 @@ export function validateSettings(settings: unknown): boolean {
 		return false;
 	}
 
-	const allowedFormats = ['YYYY-MM-DDTHH:mm:ssZ', 'UTC'];
-	if (!allowedFormats.includes(s.dateFormat as string)) {
+	const allowedTimestampModes = ['local-iso-offset', 'utc-iso'];
+	if (!allowedTimestampModes.includes(s.timestampMode as string)) {
 		return false;
 	}
 

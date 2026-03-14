@@ -27,10 +27,9 @@ describe('Settings', () => {
     it('should have all required properties', () => {
       expect(DEFAULT_SETTINGS).toHaveProperty('dateOpenedKey');
       expect(DEFAULT_SETTINGS).toHaveProperty('dateClosedKey');
-      expect(DEFAULT_SETTINGS).toHaveProperty('dateFormat');
+      expect(DEFAULT_SETTINGS).toHaveProperty('timestampMode');
       expect(DEFAULT_SETTINGS).toHaveProperty('trackOpened');
       expect(DEFAULT_SETTINGS).toHaveProperty('trackClosed');
-      expect(DEFAULT_SETTINGS).toHaveProperty('timezone');
       expect(DEFAULT_SETTINGS).toHaveProperty('trackFocusChanges');
       expect(DEFAULT_SETTINGS).toHaveProperty('lastViewKey');
       expect(DEFAULT_SETTINGS).toHaveProperty('lastUnfocusKey');
@@ -40,10 +39,9 @@ describe('Settings', () => {
     it('should have sensible default values', () => {
       expect(DEFAULT_SETTINGS.dateOpenedKey).toBe('last_opened');
       expect(DEFAULT_SETTINGS.dateClosedKey).toBe('last_closed');
-      expect(DEFAULT_SETTINGS.dateFormat).toBe('YYYY-MM-DDTHH:mm:ssZ');
+      expect(DEFAULT_SETTINGS.timestampMode).toBe('local-iso-offset');
       expect(DEFAULT_SETTINGS.trackOpened).toBe(true);
       expect(DEFAULT_SETTINGS.trackClosed).toBe(true);
-      expect(DEFAULT_SETTINGS.timezone).toBe('local');
       expect(DEFAULT_SETTINGS.uidLength).toBe(8);
       expect(DEFAULT_SETTINGS.trackFocusChanges).toBe(false);
       expect(DEFAULT_SETTINGS.lastViewKey).toBe('last_view');

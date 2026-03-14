@@ -21,7 +21,7 @@ describe('TimestampGenerator', () => {
       expect(timestamp).toMatch(/2023-11-14T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}/);
     });
 
-    it('should use local time components for local timezone', () => {
+    it('should use local time components for local-iso-offset mode', () => {
       // Create a specific date
       const testDate = new Date('2025-11-17T08:21:08.000Z'); // UTC time
       const timestamp = generator.generateTimestamp(testDate);
@@ -35,8 +35,8 @@ describe('TimestampGenerator', () => {
       const timestampMinutes = parseInt(minutes, 10);
       const timestampSeconds = parseInt(seconds, 10);
       
-      // The timestamp should show local time, not UTC
-      // Since testDate is 08:21:08 UTC, in local timezone it should be different
+      // The timestamp should show local time, not UTC.
+      // Since testDate is 08:21:08 UTC, local values come from Date local getters.
       const localHours = testDate.getHours();
       const localMinutes = testDate.getMinutes();
       const localSeconds = testDate.getSeconds();
@@ -46,11 +46,11 @@ describe('TimestampGenerator', () => {
       expect(timestampSeconds).toBe(localSeconds);
     });
 
-    it('should handle UTC timezone setting', () => {
-      const utcSettings = { ...DEFAULT_SETTINGS, timezone: 'utc' as const };
+    it('should handle utc-iso mode', () => {
+      const utcSettings = { ...DEFAULT_SETTINGS, timestampMode: 'utc-iso' as const };
       const utcGenerator = new TimestampGenerator(utcSettings);
       const timestamp = utcGenerator.generateTimestamp();
-      // Should use Z for UTC timezone
+      // Should use Z for UTC mode
       expect(timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
     });
   });

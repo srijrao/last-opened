@@ -27,6 +27,11 @@ import { UidHandler } from './uidHandler';
 import { ExtensionHandler } from './extensionHandler';
 import { registerFileExplorerMenus } from './contextMenus';
 
+interface LegacyTimestampSettings {
+	dateFormat?: 'YYYY-MM-DDTHH:mm:ssZ' | 'UTC';
+	timezone?: 'local' | 'utc' | string;
+}
+
 /**
  * Temporary file handler interface for initialization
  * Used before the real FileHandler is available
@@ -137,10 +142,15 @@ export default class LastOpenedPlugin extends Plugin {
 	 */
 	private async loadSettings(): Promise<void> {
 		// Get stored data (or empty object if no data exists)
-		const storedData = await this.loadData();
+		const storedData = (await this.loadData()) as
+			| (Partial<LastOpenedSettings> & LegacyTimestampSettings)
+			| null;
+		const migratedTimestampMode = this.deriveTimestampModeFromStoredData(storedData);
 
 		// Merge: use stored values, fall back to defaults for missing keys
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, storedData);
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, storedData, {
+			timestampMode: migratedTimestampMode
+		});
 
 		// Validate settings in case they got corrupted somehow
 		if (!validateSettings(this.settings)) {
@@ -150,6 +160,24 @@ export default class LastOpenedPlugin extends Plugin {
 			);
 			this.settings = DEFAULT_SETTINGS;
 		}
+	}
+
+	private deriveTimestampModeFromStoredData(
+		storedData: (Partial<LastOpenedSettings> & LegacyTimestampSettings) | null
+	): LastOpenedSettings['timestampMode'] {
+		if (!storedData || typeof storedData !== 'object') {
+			return DEFAULT_SETTINGS.timestampMode;
+		}
+
+		if (storedData.timestampMode === 'local-iso-offset' || storedData.timestampMode === 'utc-iso') {
+			return storedData.timestampMode;
+		}
+
+		if (storedData.dateFormat === 'UTC' || storedData.timezone === 'utc') {
+			return 'utc-iso';
+		}
+
+		return 'local-iso-offset';
 	}
 
 	/**
@@ -182,8 +210,6 @@ class LastOpenedSettingTab extends PluginSettingTab {
 	display(): void {
 		const { containerEl } = this;
 		containerEl.empty();
-
-		let timezoneSetting: Setting | null = null;
 
 		containerEl.createEl('h2', { text: 'Last Opened Plugin Settings' });
 
@@ -241,65 +267,17 @@ class LastOpenedSettingTab extends PluginSettingTab {
 		// Time Format section
 		containerEl.createEl('h3', { text: 'Time Format' });
 
-		const syncTimezoneSettingState = (): void => {
-			if (!timezoneSetting) {
-				return;
-			}
-
-			const utcFormatSelected = this.plugin.settings.dateFormat === 'UTC';
-			timezoneSetting.setDesc(
-				utcFormatSelected
-					? 'Timezone is locked to UTC when Date Format is set to UTC'
-					: 'Timezone used for ISO 8601 with offset format'
-			);
-
-			if (utcFormatSelected) {
-				timezoneSetting.components.forEach(component => {
-					component.setDisabled(true);
-				});
-			} else {
-				timezoneSetting.components.forEach(component => {
-					component.setDisabled(false);
-				});
-			}
-		};
-
 		new Setting(containerEl)
-			.setName('Date Format')
-			.setDesc('Timestamp output format')
+			.setName('Timestamp Mode')
+			.setDesc('Choose either local ISO with offset or UTC ISO')
 			.addDropdown(dropdown => dropdown
-				.addOption('YYYY-MM-DDTHH:mm:ssZ', 'ISO 8601 with timezone from setting below')
-				.addOption('UTC', 'Force UTC ISO output (timezone setting is ignored)')
-				.setValue(this.plugin.settings.dateFormat)
-				.onChange(async (value: 'YYYY-MM-DDTHH:mm:ssZ' | 'UTC') => {
-					this.plugin.settings.dateFormat = value;
-
-					if (value === 'UTC') {
-						this.plugin.settings.timezone = 'utc';
-					}
-
-					await this.plugin.saveSettings();
-					syncTimezoneSettingState();
-				}));
-
-		timezoneSetting = new Setting(containerEl)
-			.setName('Timezone')
-			.setDesc('Timezone used for ISO 8601 with offset format')
-			.addDropdown(dropdown => dropdown
-				.addOption('local', 'Use local clock time with UTC offset')
-				.addOption('utc', 'Use UTC clock time')
-				.setValue(this.plugin.settings.timezone)
-				.onChange(async (value: 'local' | 'utc') => {
-					if (this.plugin.settings.dateFormat === 'UTC') {
-						dropdown.setValue('utc');
-						return;
-					}
-
-					this.plugin.settings.timezone = value;
+				.addOption('local-iso-offset', 'Local ISO 8601 with offset (2025-11-11T14:00:00-06:00)')
+				.addOption('utc-iso', 'UTC ISO (2025-11-11T20:00:00.000Z)')
+				.setValue(this.plugin.settings.timestampMode)
+				.onChange(async (value: 'local-iso-offset' | 'utc-iso') => {
+					this.plugin.settings.timestampMode = value;
 					await this.plugin.saveSettings();
 				}));
-
-		syncTimezoneSettingState();
 
 		// Tracking Options section
 		containerEl.createEl('h3', { text: 'Tracking Options' });

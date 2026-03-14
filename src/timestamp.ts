@@ -37,16 +37,33 @@ export class TimestampGenerator {
 	 */
 	generateTimestamp(date?: Date): string {
 		const targetDate = date || new Date();
+		const timestampMode = this.resolveTimestampMode();
 
-		switch (this.settings.dateFormat) {
+		switch (timestampMode) {
 			// ISO 8601 with local timezone offset (standard, preserves timezone, widely recognized)
-			case 'YYYY-MM-DDTHH:mm:ssZ':
+			case 'local-iso-offset':
 				return this.toISO8601WithOffset(targetDate);
 
 			// UTC format (good for standardization)
-			case 'UTC':
+			case 'utc-iso':
 				return targetDate.toISOString();
 		}
+	}
+
+	/**
+	 * Resolve timestamp mode from current settings.
+	 * Falls back to legacy dateFormat/timezone if needed for migration safety.
+	 */
+	private resolveTimestampMode(): 'local-iso-offset' | 'utc-iso' {
+		if (this.settings.timestampMode === 'local-iso-offset' || this.settings.timestampMode === 'utc-iso') {
+			return this.settings.timestampMode;
+		}
+
+		if (this.settings.dateFormat === 'UTC' || this.settings.timezone === 'utc') {
+			return 'utc-iso';
+		}
+
+		return 'local-iso-offset';
 	}
 
 	/**
@@ -59,11 +76,6 @@ export class TimestampGenerator {
 	 * Uses Z for UTC or offset for local time based on settings.
 	 */
 	private toISO8601WithOffset(date: Date): string {
-		// If timezone is set to UTC, return ISO string with Z
-		if (this.settings.timezone === 'utc') {
-			return date.toISOString();
-		}
-
 		// Use local time components directly (Date.getHours() returns local time)
 		const year = date.getFullYear();
 		const month = String(date.getMonth() + 1).padStart(2, '0');

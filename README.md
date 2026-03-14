@@ -47,12 +47,9 @@ Open Obsidian Settings -> Community plugins -> Last Opened.
 
 ### Time format
 
-- Date format:
-  - `YYYY-MM-DDTHH:mm:ssZ` (ISO 8601, timezone controlled by the Timezone setting)
-  - `UTC` (forced UTC ISO output; Timezone setting is ignored/locked)
-- Timezone:
-  - `local` (local clock time with UTC offset)
-  - `utc` (UTC clock time)
+- Timestamp mode:
+  - `local-iso-offset` (ISO 8601 local time with UTC offset, e.g. `2025-11-11T14:00:00-06:00`)
+  - `utc-iso` (ISO UTC, e.g. `2025-11-11T20:00:00.000Z`)
 
 ### Tracking options
 
