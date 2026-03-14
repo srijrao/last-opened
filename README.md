@@ -1,244 +1,20 @@
 ## Last Opened Plugin
 
-### Overview
-This plugin operates on notes in Obsidian that contain specific YAML keys. By default, it uses the keys already assigned in the plugin, but these keys are configurable by the user.
+Track open/close timestamps in note frontmatter, manage UID properties, and run folder-level file extension conversions from the File Explorer context menu.
 
-### Features
-- **Selective Operation:** The plugin only processes notes that have the specified YAML keys. The list of keys is user-configurable, with sensible defaults provided.
-    - Enable one, or both.
-    - When updating the timestamp, the plugin will only update the ones present, not forcing both if there is only key present
-- **YAML Key Command:** A command is available to add the required keys to a note's YAML frontmatter. If the note does not already have YAML, the plugin will create it automatically.
-    - Either add both yaml keys, or commands for adding each key individually
-    - **Accurate Timestamps:** When adding keys to a note that was opened earlier, the plugin uses the actual opening time, not the time when the command was run
-- **Performance Optimization:** The plugin only makes changes to notes when they are opened or closed, reducing unnecessary processing and improving performance.
-- **Configurable Keys:** Users can change which YAML keys the plugin looks for and manages, but the default set matches the initial configuration. 
-   - `last_opened` and `last_closed` as defaults.
-- **Configurable Time Formats** Users can choose from preset time formats: ISO 8601 with local offset or UTC.
-    - ISO 8601 Format with local offset as default in Obsidian
-- **Automatic Type Registration:** The plugin automatically updates Obsidian's `types.json` file to register all tracked properties as datetime types. This ensures the Properties panel displays timestamps correctly without manual configuration.
-    - Updates on plugin load and whenever settings change
-    - Preserves existing property type definitions
-    - Registers base keys and all numbered history keys (e.g., `last_opened_1`, `last_opened_2`, etc.)
-- **UID Tools:** Generate configurable-length unique IDs, update entire folders with summary notices, and scan the vault for duplicate IDs.
-   - Folder commands report how many markdown files were modified out of the total files considered
-   - Duplicate UID scan lists every affected file so copied frontmatter is easy to clean up
+## Features
 
-### Future Plans
-- **Additional Timestamps:** Future versions may add support for tracking and adding timestamps for other events in the YAML frontmatter. This is not included in the current version.
-
----
-
-## Architecture Guide for Developers
-
-This codebase is structured to be beginner-friendly while maintaining clean separation of concerns. Each file has a specific responsibility:
-
-### File Structure
-
-```
-src/
-├── main.ts           # Plugin entry point and coordinator
-├── settings.ts       # Settings interface and defaults
-├── timestamp.ts      # Timestamp generation logic
-├── fileHandler.ts    # YAML frontmatter operations
-├── eventHandler.ts   # Event listener setup
-└── commands.ts       # User-facing commands
-```
-
-### Module Descriptions
-
-#### `main.ts` - The Conductor
-**Responsibility:** Bootstrap and coordinate all modules
-
-This is the entry point. When Obsidian loads the plugin, the `onload()` method is called. It:
-1. Loads settings from persistent storage
-2. Creates instances of helper modules
-3. Sets up event handlers and commands
-
-Think of it as the "main" function—it orchestrates everything but doesn't do the actual work.
-
-**Key concepts for beginners:**
-- `onload()` - Called when plugin starts
-- `onunload()` - Called when plugin stops
-- `loadSettings()` - Reads configuration from disk
-
-#### `settings.ts` - The Configuration
-**Responsibility:** Define what settings are available and provide sensible defaults
-
-Contains:
-- `LastOpenedSettings` interface (describes all possible settings)
-- `DEFAULT_SETTINGS` constant (safe defaults)
-- `validateSettings()` function (catches corrupted data)
-
-**Example settings:**
-```typescript
-{
-   dateOpenedKey: 'last_opened',    // YAML key for tracking opens
-   dateClosedKey: 'last_closed',    // YAML key for tracking closes
-  dateFormat: 'YYYY-MM-DDTHH:mm:ssZ',   // ISO 8601 with timezone offset
-  trackOpened: true,                    // Enable open tracking?
-  trackClosed: true,                    // Enable close tracking?
-  timezone: 'local'                     // 'local', 'utc', or IANA timezone
-}
-```
-
-**Key concepts for beginners:**
-- `interface` - A blueprint that describes the shape of an object
-- Defaults - Safe starting values if user hasn't configured anything
-- Validation - Ensures data integrity
-
-#### `timestamp.ts` - The Time Formatter
-**Responsibility:** Generate properly formatted timestamps
-
-Contains the `TimestampGenerator` class which:
-- `generateTimestamp()` - Creates a timestamp string for the current moment
-- Helper methods for different format types
-
-**Example output:**
-```
-"2025-11-14T15:30:45-05:00"  // ISO 8601 with timezone offset
-"2025-11-14 15:30:45-05:00"  // Local datetime with timezone offset
-"2025-11-14T15:30:45"        // ISO 8601 without timezone
-"2025-11-14T20:30:45.000Z"   // UTC
-```
-
-**Key concepts for beginners:**
-- Class - Bundles related methods together
-- Dependency injection - Pass in settings so the class knows how to format
-- Helper methods (private) - Internal utilities not exposed outside the class
-
-#### `fileHandler.ts` - The File Updater
-**Responsibility:** Handle all YAML frontmatter operations
-
-Contains the `FileHandler` class which:
-- `updateDateOpened()` - Record opening timestamp (only if enabled)
-- `updateDateClosed()` - Record closing timestamp (only if enabled)
-- `addYAMLKeys()` - Add YAML keys to a note (for the user command)
-- `hasTrackedKeys()` - Check if a file belongs to this plugin
-- `updateFrontmatterProperty()` - Internal method that does the actual update
-
-**Important safety feature:** Only modifies files that already have one of our YAML keys. This prevents accidentally adding keys to notes that shouldn't be tracked.
-
-**Key concepts for beginners:**
-- Error handling - Try/catch to prevent crashes
-- Conditional execution - Check settings before making changes
-- Single responsibility - This file only cares about file operations
-
-#### `eventHandler.ts` - The Event Listener
-**Responsibility:** Listen for Obsidian events and respond appropriately
-
-Contains the `EventHandler` class which:
-- `registerEvents()` - Set up all event listeners
-- `handleFileOpen()` - Logic for when a file opens
-- `handleApplicationClose()` - Logic for when Obsidian closes
-
-**Events this listens for:**
-- `layout-change` - Workspace layout changes, such as files being opened or closed (emitted by Obsidian)
-- `beforeunload` - Browser is closing (catches force-quit scenarios)
-
-**Key concepts for beginners:**
-- Events - Things that happen (user actions, system events)
-- Event listeners/handlers - Functions that run when events occur
-- State tracking - `lastActiveFile` remembers which file was open
-
-#### `commands.ts` - User Actions
-**Responsibility:** Define commands users can run from the command palette
-
-Contains the `CommandRegistry` class which:
-- `registerCommands()` - Set up all available commands
-- `registerAddKeysCommands()` - Three variants for adding YAML keys
-
-**Available commands:**
-1. "Add last-opened and last-closed keys" - Adds both keys with current timestamp
-2. "Add only last-opened key" - Adds just the opened key
-3. "Add only last-closed key" - Adds just the closed key
-4. "Add unique ID to YAML if not present" - Adds a generated UID to the active note only when missing
-5. "Add/Replace unique ID to YAML" - Always writes a new generated UID to the active note
-6. "Add unique ID to YAML if not present to folder" - Updates markdown files in the active note's folder and reports modified versus eligible files
-7. "Add/Replace unique ID to YAML to folder" - Rewrites UIDs for markdown files in the active note's folder and reports modified versus eligible files
-8. "Find files with duplicate unique IDs" - Scans all markdown files and lists duplicate UID collisions
-
-**How users access them:**
-1. Press `Ctrl+P` (or `Cmd+P` on Mac)
-2. Type "last opened" to filter
-3. Select a command and press Enter
-
-**Key concepts for beginners:**
-- Commands - User-triggered actions
-- Notices - Toast-style notifications to give feedback
-- Try/catch - Graceful error handling
-
----
-
-## How It All Works Together
-
-Here's the execution flow:
-
-```
-User installs plugin
-         ↓
-main.ts loads and calls onload()
-         ↓
-Loads settings from disk
-         ↓
-Creates TimestampGenerator (knows how to format time)
-         ↓
-Creates FileHandler (knows how to modify files)
-         ↓
-Sets up EventHandlers (listens for file opens/closes)
-         ↓
-Sets up Commands (listens for user requests)
-         ↓
-Plugin is ready!
-
-When the workspace layout changes (file opened/closed):
-  EventHandler detects layout-change event
-         ↓
-  Compares current open files to previously tracked open files
-         ↓
-  Records opening timestamps for newly opened files
-         ↓
-  Records closing timestamps for newly closed files
-         ↓
-  Updates the tracked set of open files
-```
-
----
-
-## Learning Path for Beginners
-
-If you're learning from this codebase, here's the suggested order:
-
-1. **Start with `settings.ts`**
-   - Simple file
-   - Understand interfaces and constants
-   - Learn what data the plugin needs
-
-2. **Read `timestamp.ts`**
-   - See how to handle dates in JavaScript
-   - Understand string formatting
-   - Learn about helper methods
-
-3. **Review `fileHandler.ts`**
-   - Learn how to interact with Obsidian's API
-   - See conditional logic in action
-   - Understand validation patterns
-
-4. **Study `eventHandler.ts`**
-   - Learn how event listeners work
-   - See state management (`lastActiveFile`)
-   - Understand error handling
-
-5. **Look at `commands.ts`**
-   - See how to create user-facing features
-   - Learn about user feedback (Notices)
-   - Understand command registration
-
-6. **Finally, examine `main.ts`**
-   - See how all modules work together
-   - Understand initialization patterns
-   - Learn the Obsidian Plugin API lifecycle
-
----
+- Timestamp tracking for note open and note close events.
+- Optional focus tracking inside the same tab group using `last_view` and `last_unfocus` (key names are configurable).
+- Selective updates for open/close keys: automatic tracking only updates notes that already contain tracked keys.
+- Command palette tools to add timestamp keys (`both`, `opened only`, `closed only`).
+- History depth for timestamp keys (`1-5`) with numbered keys such as `last_opened_1`, `last_opened_2`, etc.
+- Per-note history override via frontmatter keys like `<openedKey>_history` and `<closedKey>_history`.
+- Automatic `types.json` registration for tracked datetime properties.
+- UID generation tools for the current note and current folder.
+- Duplicate UID scanner across all markdown files in the vault.
+- File Explorer context-menu actions to convert file extensions (`.md`, `.txt`, and custom extension mapping).
+- Folder operations support recursion modes: not recursive, fully recursive, ask each time, or depth-limited.
 
 ## Installation
 
@@ -261,60 +37,119 @@ If you're learning from this codebase, here's the suggested order:
 
 ## Configuration
 
-The plugin can be configured through Obsidian's settings panel:
+Open Obsidian Settings -> Community plugins -> Last Opened.
 
-1. Open Settings (Ctrl+,)
-2. Go to "Community plugins" → "Last Opened"
-3. Configure the following options:
+### YAML keys
 
-### YAML Keys
-- **Opened Key**: Name of the YAML key for tracking opening times (default: `last_opened`)
-- **Closed Key**: Name of the YAML key for tracking closing times (default: `last_closed`)
-- **Note**: Leaving fields empty will automatically use the default values
+- Opened key (default: `last_opened`)
+- Closed key (default: `last_closed`)
+- Empty values are normalized back to defaults.
 
-### Time Format
-- **Date Format**: Choose from preset timestamp formats (default: `Local with offset`)
-- **Timezone**: Whether to use local time with offset or UTC (default: `local`)
-- **Available Formats**:
-  - `Local with offset`: `2025-11-11T14:00:00-06:00`
-  - `UTC`: `2025-11-11T20:00:00.000Z`
+### Time format
 
-### Tracking Options
-- **Track Openings**: Enable/disable recording of opening timestamps
-- **Track Closings**: Enable/disable recording of closing timestamps
+- Date format:
+  - `YYYY-MM-DDTHH:mm:ssZ` (local timestamp with offset)
+  - `UTC` (ISO UTC)
+- Timezone:
+  - `local`
+  - `utc`
 
-### Reset Settings
-- **Reset to Defaults**: Button to reset all settings back to their default values
+### Tracking options
 
-## Data Persistence
+- Track openings (`trackOpened`)
+- Track closings (`trackClosed`)
+- Track focus changes inside the same tab group (`trackFocusChanges`)
+- Last view key (default: `last_view`)
+- Last unfocus key (default: `last_unfocus`)
+- History depth slider (`1-5`)
 
-The plugin automatically saves opening times across Obsidian restarts, ensuring accurate timestamps even when you add tracking keys to notes that were opened in previous sessions.
+### UID options
 
-**Data Retention:** The plugin stores timestamps directly in note frontmatter. The plugin itself does not purge frontmatter values; historical entries are controlled by the `historyDepth` setting (default: 1).
+- UID key name (default: `uid`)
+- UID length (`4-32`, default `8`)
 
-## Template Usage
+### File extension options
 
-The plugin is designed to work well with note templates. You can create templates with empty YAML keys that the plugin will automatically populate:
+- Custom convert from extension (default: `md`)
+- Custom convert to extension (default: `txt`)
 
-date_last_opened: 
-date_last_closed: 
-tags: template/daily-note
+### Folder operation options
+
+- Recursion mode:
+  - `not-recursive`
+  - `fully-recursive`
+  - `ask`
+  - `depth`
+- Recursion depth (`1-10`)
+- Whether ask-mode includes a depth choice
+
+### Reset
+
+- Reset button restores all settings to defaults.
+
+## Commands
+
+Command palette commands:
+
+1. Add last-opened and last-closed keys
+2. Add only last-opened key
+3. Add only last-closed key
+4. Add unique ID to YAML if not present
+5. Add/Replace unique ID to YAML
+6. Add unique ID to YAML if not present to folder
+7. Add/Replace unique ID to YAML to folder
+8. Find files with duplicate unique IDs
+
+File Explorer context-menu actions:
+
+- For files:
+  - Change extension to `.txt`
+  - Change extension to `.md`
+- For folders:
+  - Change all `.txt` files to `.md`
+  - Change all `.md` files to `.txt`
+  - Change all custom extension files
+
+## Frontmatter Examples
+
+Basic keys:
+
 ```yaml
 ---
-last_opened: 
-last_closed: 
-
+last_opened: 2026-03-13T11:10:09-05:00
+last_closed: 2026-03-13T11:27:02-05:00
 ---
-# Daily Note Template
-
-Today's date: {{date}}
-
-## Tasks
-- [ ] Task 1
-- [ ] Task 2
 ```
 
-When you create a new note from this template and open it, the plugin will fill in the timestamps automatically.
+History depth example:
+
+```yaml
+---
+last_opened: 2026-03-13T11:10:09-05:00
+last_opened_1: 2026-03-13T11:10:09-05:00
+last_opened_2: 2026-03-12T18:41:44-05:00
+last_closed: 2026-03-13T11:27:02-05:00
+last_closed_1: 2026-03-13T11:27:02-05:00
+uid: a2f83k1z
+---
+```
+
+Per-note depth override:
+
+```yaml
+---
+last_opened_history: 3
+last_closed_history: 2
+---
+```
+
+## How Tracking Works
+
+- On workspace layout changes, the plugin compares currently open files against the previously tracked set.
+- Newly opened files get open timestamps.
+- Newly closed files get close timestamps.
+- On app close (`beforeunload`), close timestamps are attempted for remaining tracked open files.
+- The add-key commands can use the recorded opening time so `last_opened` reflects when the file actually opened, not only when the command is executed.
 
 ## Development
 
@@ -354,13 +189,13 @@ The dev build creates a `main.js` file in the root directory, which Obsidian loa
 5. The YAML frontmatter is created with initial timestamps
 
 Example result:
+
 ```yaml
 ---
 last_opened: 2025-11-14T15:30:45-05:00
 last_closed: 2025-11-14T15:32:12-05:00
 other_field: your other metadata
 ---
-
 # Your Note Content
 ```
 
@@ -374,21 +209,29 @@ other_field: your other metadata
 The plugin tracks opening times for all notes, even those without YAML keys. This ensures that when you later decide to add tracking keys to a note you opened earlier, the `last_opened` value will reflect the actual time you opened it, not when you ran the command.
 
 **Example scenario:**
+
 1. At 2:00 PM: You open "My Note.md" (no YAML keys yet)
 2. At 2:05 PM: You decide to add tracking, run "Add last-opened and last-closed keys"
 3. Result: `last_opened` shows 2:00 PM (when you actually opened it), `last_closed` shows 2:05 PM (when you ran the command)
 
 ---
 
-## Code Comments
+## Architecture
 
-All code includes detailed comments explaining:
-- What each file/class/function does
-- How to use it
-- Why it's designed that way
-- Examples for beginners
+Core modules:
 
-When learning or debugging, read the comments first—they're written for someone new to the code.
+- `main.ts`: plugin bootstrap, settings tab, dependency wiring
+- `settings.ts`: settings schema, defaults, validation
+- `timestamp.ts`: timestamp formatting
+- `fileHandler.ts`: frontmatter updates and `types.json` registration
+- `eventHandler.ts`: workspace and app lifecycle event handling
+- `commands.ts`: command palette command registration
+- `uidHandler.ts`: UID generation, folder updates, duplicate scan
+- `extensionHandler.ts`: file/folder extension conversion
+- `contextMenus.ts`: file explorer menu actions
+- `folderUtils.ts`: recursion selection and file collection helpers
+
+Tests are under `src/__tests__/`.
 
 ---
 
