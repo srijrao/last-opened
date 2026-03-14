@@ -5,11 +5,17 @@ describe('LastOpenedPlugin System Test', () => {
   let mockApp: App;
   let mockManifest: any;
   let plugin: LastOpenedPlugin;
+  let consoleLogSpy: jest.SpyInstance;
 
   beforeEach(() => {
+    consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => undefined);
     mockApp = new App();
     mockManifest = { id: 'last-opened', version: '1.0.0' };
     plugin = new LastOpenedPlugin(mockApp, mockManifest);
+  });
+
+  afterEach(() => {
+    consoleLogSpy.mockRestore();
   });
 
   describe('Plugin Lifecycle', () => {
