@@ -62,23 +62,31 @@ export class FileHandler {
 
 	/**
 	 * Update frontmatter key for when a file is focused within a tab group
+	 * Only updates if the key already exists in the file
 	 */
 	async updateLastView(file: TFile): Promise<void> {
 		const key = this.settings.lastViewKey;
 		const timestamp = this.timestampGenerator.generateTimestamp();
 		await this.app.fileManager.processFrontMatter(file, (frontmatter: Record<string, unknown>) => {
-			frontmatter[key] = timestamp;
+			// Only update if key already exists
+			if (key in frontmatter) {
+				frontmatter[key] = timestamp;
+			}
 		});
 	}
 
 	/**
 	 * Update frontmatter key for when a file loses focus within a tab group
+	 * Only updates if the key already exists in the file
 	 */
 	async updateLastUnfocus(file: TFile): Promise<void> {
 		const key = this.settings.lastUnfocusKey;
 		const timestamp = this.timestampGenerator.generateTimestamp();
 		await this.app.fileManager.processFrontMatter(file, (frontmatter: Record<string, unknown>) => {
-			frontmatter[key] = timestamp;
+			// Only update if key already exists
+			if (key in frontmatter) {
+				frontmatter[key] = timestamp;
+			}
 		});
 	}
 
@@ -341,6 +349,12 @@ export class FileHandler {
 		const timestamp = this.timestampGenerator.generateTimestamp();
 
 		await this.app.fileManager.processFrontMatter(file, (frontmatter: Record<string, unknown>) => {
+			// Only update if the specific key already exists
+			const hasProperty = property in frontmatter || `${property}_1` in frontmatter || `${property}_history` in frontmatter;
+			if (!hasProperty) {
+				return; // Don't create new keys, only update existing ones
+			}
+
 			// Determine per-file depth override: check frontmatter for `<property>_history` numeric value
 			// Cap at 5 for memory management
 			let depth = Math.min(5, Math.max(1, this.settings.historyDepth || 1));
