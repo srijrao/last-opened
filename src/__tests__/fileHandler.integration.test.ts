@@ -147,6 +147,40 @@ describe('FileHandler Integration', () => {
       expect(mockApp.fileManager.processFrontMatter).toHaveBeenCalledTimes(1);
       expect(mockEventHandler.getFileOpeningTime).toHaveBeenCalledWith(mockFile);
     });
+
+    it('should preserve existing uid when inserting timestamp keys', async () => {
+      const frontmatter: Record<string, unknown> = {
+        uid: 'abc123xy'
+      };
+
+      mockEventHandler.getFileOpeningTime.mockReturnValue(null);
+      mockApp.fileManager.processFrontMatter = jest.fn().mockImplementation(async (_file, callback) => {
+        callback(frontmatter);
+      });
+
+      await fileHandler.addYAMLKeys(mockFile, 'both');
+
+      expect(frontmatter.uid).toBe('abc123xy');
+      expect(frontmatter[DEFAULT_SETTINGS.dateOpenedKey]).toBeDefined();
+      expect(frontmatter[DEFAULT_SETTINGS.dateClosedKey]).toBeDefined();
+    });
+
+    it('should generate uid when uid key is present but empty', async () => {
+      const frontmatter: Record<string, unknown> = {
+        uid: '   '
+      };
+
+      mockEventHandler.getFileOpeningTime.mockReturnValue(null);
+      mockApp.fileManager.processFrontMatter = jest.fn().mockImplementation(async (_file, callback) => {
+        callback(frontmatter);
+      });
+
+      await fileHandler.addYAMLKeys(mockFile, 'both');
+
+      expect(frontmatter.uid).toMatch(/^[a-z0-9]{8}$/);
+      expect(frontmatter[DEFAULT_SETTINGS.dateOpenedKey]).toBeDefined();
+      expect(frontmatter[DEFAULT_SETTINGS.dateClosedKey]).toBeDefined();
+    });
   });
 
   describe('createFileHandler', () => {

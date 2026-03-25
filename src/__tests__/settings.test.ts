@@ -1,4 +1,4 @@
-import { validateSettings, DEFAULT_SETTINGS } from '../settings';
+import { hasUniqueYamlKeys, validateSettings, DEFAULT_SETTINGS } from '../settings';
 
 describe('Settings', () => {
   describe('validateSettings', () => {
@@ -51,6 +51,33 @@ describe('Settings', () => {
     it('should reject invalid UID length', () => {
       const invalidSettings = { ...DEFAULT_SETTINGS, uidLength: 2 };
       expect(validateSettings(invalidSettings)).toBe(false);
+    });
+
+    it('should reject duplicate YAML keys', () => {
+      const invalidSettings = {
+        ...DEFAULT_SETTINGS,
+        uidKey: DEFAULT_SETTINGS.dateOpenedKey
+      };
+
+      expect(validateSettings(invalidSettings)).toBe(false);
+    });
+
+    it('should report unique YAML keys correctly', () => {
+      expect(hasUniqueYamlKeys({
+        dateOpenedKey: 'opened',
+        dateClosedKey: 'closed',
+        uidKey: 'uid',
+        lastViewKey: 'view',
+        lastUnfocusKey: 'unfocus'
+      })).toBe(true);
+
+      expect(hasUniqueYamlKeys({
+        dateOpenedKey: 'opened',
+        dateClosedKey: 'closed',
+        uidKey: 'opened',
+        lastViewKey: 'view',
+        lastUnfocusKey: 'unfocus'
+      })).toBe(false);
     });
   });
 });

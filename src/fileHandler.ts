@@ -13,6 +13,27 @@ import { TFile, App } from 'obsidian';
 import { LastOpenedSettings } from './settings';
 import { TimestampGenerator } from './timestamp';
 import { EventHandler } from './eventHandler';
+import { generateUID } from './uidHandler';
+
+function hasMeaningfulValue(value: unknown): boolean {
+	if (value === null || value === undefined) {
+		return false;
+	}
+
+	if (typeof value === 'string') {
+		return value.trim().length > 0;
+	}
+
+	return true;
+}
+
+function normalizeUidLength(length: unknown, fallback = 8): number {
+	if (typeof length !== 'number' || Number.isNaN(length)) {
+		return fallback;
+	}
+
+	return Math.max(4, Math.min(32, Math.floor(length)));
+}
 
 /**
  * FileHandler class manages all YAML frontmatter operations
@@ -109,6 +130,11 @@ export class FileHandler {
 		keyType: 'both' | 'opened' | 'closed' = 'both'
 	): Promise<void> {
 		await this.app.fileManager.processFrontMatter(file, (frontmatter: Record<string, unknown>) => {
+			const uidKey = this.settings.uidKey;
+			if (uidKey in frontmatter && !hasMeaningfulValue(frontmatter[uidKey])) {
+				frontmatter[uidKey] = generateUID(normalizeUidLength(this.settings.uidLength, 8));
+			}
+
 			// For opened key: use stored opening time if available, otherwise current time
 			let openedTimestamp: string;
 			if (keyType === 'both' || keyType === 'opened') {

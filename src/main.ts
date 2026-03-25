@@ -17,6 +17,7 @@ import { Plugin, PluginSettingTab, Setting, App, TFile } from 'obsidian';
 import {
 	LastOpenedSettings,
 	DEFAULT_SETTINGS,
+	hasUniqueYamlKeys,
 	validateSettings
 } from './settings';
 import { createTimestampGenerator } from './timestamp';
@@ -42,6 +43,16 @@ interface TempFileHandler {
 	updateLastView: (file: TFile) => Promise<void>;
 	updateLastUnfocus: (file: TFile) => Promise<void>;
 }
+
+type YamlKeyField = 'dateOpenedKey' | 'dateClosedKey' | 'uidKey' | 'lastViewKey' | 'lastUnfocusKey';
+
+const YAML_KEY_LABELS: Record<YamlKeyField, string> = {
+	dateOpenedKey: 'Opened Key',
+	dateClosedKey: 'Closed Key',
+	uidKey: 'UID Key',
+	lastViewKey: 'Last View Key',
+	lastUnfocusKey: 'Last Unfocus Key'
+};
 
 /**
  * LastOpenedPlugin - The main plugin class
@@ -207,6 +218,41 @@ class LastOpenedSettingTab extends PluginSettingTab {
 		this.plugin = plugin;
 	}
 
+	private getYamlKeySettings(nextField: YamlKeyField, nextValue: string): Pick<LastOpenedSettings, YamlKeyField> {
+		return {
+			dateOpenedKey: nextField === 'dateOpenedKey' ? nextValue : this.plugin.settings.dateOpenedKey,
+			dateClosedKey: nextField === 'dateClosedKey' ? nextValue : this.plugin.settings.dateClosedKey,
+			uidKey: nextField === 'uidKey' ? nextValue : this.plugin.settings.uidKey,
+			lastViewKey: nextField === 'lastViewKey' ? nextValue : this.plugin.settings.lastViewKey,
+			lastUnfocusKey: nextField === 'lastUnfocusKey' ? nextValue : this.plugin.settings.lastUnfocusKey
+		};
+	}
+
+	private getYamlKeyConflict(field: YamlKeyField, value: string): YamlKeyField | null {
+		const nextSettings = this.getYamlKeySettings(field, value);
+		if (hasUniqueYamlKeys(nextSettings)) {
+			return null;
+		}
+
+		for (const [candidateField, candidateValue] of Object.entries(nextSettings) as Array<[YamlKeyField, string]>) {
+			if (candidateField !== field && candidateValue === value) {
+				return candidateField;
+			}
+		}
+
+		return null;
+	}
+
+	private setYamlKeyError(text: { inputEl: { style: { borderColor: string }; title: string } }, message: string): void {
+		text.inputEl.style.borderColor = 'orange';
+		text.inputEl.title = message;
+	}
+
+	private clearYamlKeyError(text: { inputEl: { style: { borderColor: string }; title: string } }): void {
+		text.inputEl.style.borderColor = '';
+		text.inputEl.title = '';
+	}
+
 	display(): void {
 		const { containerEl } = this;
 		containerEl.empty();
@@ -223,18 +269,15 @@ class LastOpenedSettingTab extends PluginSettingTab {
 				.setPlaceholder('last_opened')
 				.setValue(this.plugin.settings.dateOpenedKey)
 				.onChange(async (value) => {
-					// Handle empty values gracefully - use defaults
 					const trimmed = value.trim();
-					const finalValue = trimmed || 'last_opened'; // Default if empty
-
-					// Check for duplicate keys (only if both are non-empty)
-					if (finalValue && finalValue === this.plugin.settings.dateClosedKey) {
-						text.inputEl.style.borderColor = 'orange';
-						text.inputEl.title = 'Opened and closed keys should be different';
-					} else {
-						text.inputEl.style.borderColor = '';
-						text.inputEl.title = '';
+					const finalValue = trimmed || 'last_opened';
+					const conflict = this.getYamlKeyConflict('dateOpenedKey', finalValue);
+					if (conflict) {
+						this.setYamlKeyError(text, `Opened Key must be unique. It already matches ${YAML_KEY_LABELS[conflict]}.`);
+						return;
 					}
+
+					this.clearYamlKeyError(text);
 
 					this.plugin.settings.dateOpenedKey = finalValue;
 					await this.plugin.saveSettings();
@@ -247,18 +290,15 @@ class LastOpenedSettingTab extends PluginSettingTab {
 				.setPlaceholder('last_closed')
 				.setValue(this.plugin.settings.dateClosedKey)
 				.onChange(async (value) => {
-					// Handle empty values gracefully - use defaults
 					const trimmed = value.trim();
-					const finalValue = trimmed || 'last_closed'; // Default if empty
-
-					// Check for duplicate keys (only if both are non-empty)
-					if (finalValue && finalValue === this.plugin.settings.dateOpenedKey) {
-						text.inputEl.style.borderColor = 'orange';
-						text.inputEl.title = 'Opened and closed keys should be different';
-					} else {
-						text.inputEl.style.borderColor = '';
-						text.inputEl.title = '';
+					const finalValue = trimmed || 'last_closed';
+					const conflict = this.getYamlKeyConflict('dateClosedKey', finalValue);
+					if (conflict) {
+						this.setYamlKeyError(text, `Closed Key must be unique. It already matches ${YAML_KEY_LABELS[conflict]}.`);
+						return;
 					}
+
+					this.clearYamlKeyError(text);
 
 					this.plugin.settings.dateClosedKey = finalValue;
 					await this.plugin.saveSettings();
@@ -319,7 +359,15 @@ class LastOpenedSettingTab extends PluginSettingTab {
 				.setPlaceholder('last_view')
 				.setValue(this.plugin.settings.lastViewKey)
 				.onChange(async (value) => {
-					this.plugin.settings.lastViewKey = value.trim() || 'last_view';
+					const finalValue = value.trim() || 'last_view';
+					const conflict = this.getYamlKeyConflict('lastViewKey', finalValue);
+					if (conflict) {
+						this.setYamlKeyError(text, `Last View Key must be unique. It already matches ${YAML_KEY_LABELS[conflict]}.`);
+						return;
+					}
+
+					this.clearYamlKeyError(text);
+					this.plugin.settings.lastViewKey = finalValue;
 					await this.plugin.saveSettings();
 				}));
 
@@ -330,7 +378,15 @@ class LastOpenedSettingTab extends PluginSettingTab {
 				.setPlaceholder('last_unfocus')
 				.setValue(this.plugin.settings.lastUnfocusKey)
 				.onChange(async (value) => {
-					this.plugin.settings.lastUnfocusKey = value.trim() || 'last_unfocus';
+					const finalValue = value.trim() || 'last_unfocus';
+					const conflict = this.getYamlKeyConflict('lastUnfocusKey', finalValue);
+					if (conflict) {
+						this.setYamlKeyError(text, `Last Unfocus Key must be unique. It already matches ${YAML_KEY_LABELS[conflict]}.`);
+						return;
+					}
+
+					this.clearYamlKeyError(text);
+					this.plugin.settings.lastUnfocusKey = finalValue;
 					await this.plugin.saveSettings();
 				}));
 
@@ -357,7 +413,15 @@ class LastOpenedSettingTab extends PluginSettingTab {
 				.setValue(this.plugin.settings.uidKey)
 				.onChange(async (value) => {
 					const trimmed = value.trim();
-					this.plugin.settings.uidKey = trimmed || 'uid';
+					const finalValue = trimmed || 'uid';
+					const conflict = this.getYamlKeyConflict('uidKey', finalValue);
+					if (conflict) {
+						this.setYamlKeyError(text, `UID Key must be unique. It already matches ${YAML_KEY_LABELS[conflict]}.`);
+						return;
+					}
+
+					this.clearYamlKeyError(text);
+					this.plugin.settings.uidKey = finalValue;
 					await this.plugin.saveSettings();
 				}));
 

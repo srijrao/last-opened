@@ -75,6 +75,45 @@ export interface LastOpenedSettings {
 	lastUnfocusKey: string;
 }
 
+type YamlKeySetting =
+	| 'dateOpenedKey'
+	| 'dateClosedKey'
+	| 'uidKey'
+	| 'lastViewKey'
+	| 'lastUnfocusKey';
+
+const YAML_KEY_SETTINGS: YamlKeySetting[] = [
+	'dateOpenedKey',
+	'dateClosedKey',
+	'uidKey',
+	'lastViewKey',
+	'lastUnfocusKey'
+];
+
+function normalizeYamlKey(value: unknown): string | null {
+	if (typeof value !== 'string') {
+		return null;
+	}
+
+	const trimmed = value.trim();
+	return trimmed.length > 0 ? trimmed : null;
+}
+
+export function hasUniqueYamlKeys(settings: Pick<LastOpenedSettings, YamlKeySetting>): boolean {
+	const seen = new Set<string>();
+
+	for (const key of YAML_KEY_SETTINGS) {
+		const normalized = normalizeYamlKey(settings[key]);
+		if (!normalized || seen.has(normalized)) {
+			return false;
+		}
+
+		seen.add(normalized);
+	}
+
+	return true;
+}
+
 /**
  * Default settings that apply when the user hasn't configured anything
  *
@@ -168,6 +207,8 @@ export function validateSettings(settings: unknown): boolean {
 	}
 
 	if (
+		typeof s.dateOpenedKey !== 'string' ||
+		typeof s.dateClosedKey !== 'string' ||
 		typeof s.uidKey !== 'string' ||
 		typeof s.uidLength !== 'number' ||
 		typeof s.customExtFrom !== 'string' ||
@@ -175,6 +216,10 @@ export function validateSettings(settings: unknown): boolean {
 		typeof s.lastViewKey !== 'string' ||
 		typeof s.lastUnfocusKey !== 'string'
 	) {
+		return false;
+	}
+
+	if (!hasUniqueYamlKeys(s as Pick<LastOpenedSettings, YamlKeySetting>)) {
 		return false;
 	}
 
