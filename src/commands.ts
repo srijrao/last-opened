@@ -195,7 +195,8 @@ export class CommandRegistry {
 			new Notice(
 				updated
 					? '✓ Added unique ID in frontmatter'
-					: 'UID key already has a value, nothing changed'
+					: 'UID key already has a value, nothing changed',
+				900
 			);
 		} catch (error) {
 			console.error('Error adding UID to note:', error);
