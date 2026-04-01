@@ -9,6 +9,7 @@
  */
 
 import { Plugin, Notice, TFolder } from 'obsidian';
+import LastOpenedPlugin from './main';
 import { FileHandler } from './fileHandler';
 import { UidHandler } from './uidHandler';
 
@@ -38,7 +39,7 @@ function formatDuplicateUidNotice(
  */
 export class CommandRegistry {
 	constructor(
-		private plugin: Plugin,
+		private plugin: LastOpenedPlugin,
 		private fileHandler: FileHandler,
 		private uidHandler: UidHandler
 	) { }
@@ -178,29 +179,38 @@ export class CommandRegistry {
 
 	private async addUidToCurrentNote(replace: boolean): Promise<void> {
 		const activeFile = this.plugin.app.workspace.getActiveFile();
-
 		if (!activeFile) {
 			new Notice('No note is currently open. Please open a note first.');
 			return;
 		}
 
+		const showNotice = this.plugin?.settings?.showUidNotice !== false;
 		try {
+			let updated: boolean | void = false;
 			if (replace) {
 				await this.uidHandler.addOrReplaceUid(activeFile);
-				new Notice('✓ Added/Replaced unique ID in frontmatter');
-				return;
+				updated = true;
+			} else {
+				updated = await this.uidHandler.addUidIfAbsent(activeFile);
 			}
 
-			const updated = await this.uidHandler.addUidIfAbsent(activeFile);
-			new Notice(
-				updated
-					? '✓ Added unique ID in frontmatter'
-					: 'UID key already has a value, nothing changed',
-				900
-			);
+			if (showNotice) {
+				if (replace) {
+					new Notice('✓ Added/Replaced unique ID in frontmatter');
+				} else {
+					new Notice(
+						updated
+							? '✓ Added unique ID in frontmatter'
+							: 'UID key already has a value, nothing changed',
+						900
+					);
+				}
+			}
 		} catch (error) {
 			console.error('Error adding UID to note:', error);
-			new Notice('✗ Failed to add unique ID. Please check the console for details.');
+			if (showNotice) {
+				new Notice('✗ Failed to add unique ID. Please check the console for details.');
+			}
 		}
 	}
 
@@ -256,7 +266,7 @@ export class CommandRegistry {
  * @returns A configured CommandRegistry with all commands registered
  */
 export function setupCommands(
-	plugin: Plugin,
+	plugin: LastOpenedPlugin,
 	fileHandler: FileHandler,
 	uidHandler: UidHandler
 ): CommandRegistry {

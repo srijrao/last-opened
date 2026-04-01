@@ -19,7 +19,7 @@ export class TimestampGenerator {
 	 * Constructor takes the current settings
 	 * @param settings - Plugin settings containing format and timezone preferences
 	 */
-	constructor(private settings: LastOpenedSettings) {}
+	constructor(private settings: LastOpenedSettings) { }
 
 	/**
 	 * Generates a timestamp string for the current moment

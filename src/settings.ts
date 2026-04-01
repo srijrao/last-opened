@@ -73,6 +73,9 @@ export interface LastOpenedSettings {
 
 	/** YAML key for when a file loses focus in a tab group */
 	lastUnfocusKey: string;
+
+	/** Show notice when UID is added or replaced */
+	showUidNotice?: boolean;
 }
 
 type YamlKeySetting =
@@ -137,6 +140,7 @@ export const DEFAULT_SETTINGS: LastOpenedSettings = {
 	trackFocusChanges: false,
 	lastViewKey: 'last_view',
 	lastUnfocusKey: 'last_unfocus'
+	, showUidNotice: true
 };
 
 /**

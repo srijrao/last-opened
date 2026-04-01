@@ -25,22 +25,22 @@ describe('TimestampGenerator', () => {
       // Create a specific date
       const testDate = new Date('2025-11-17T08:21:08.000Z'); // UTC time
       const timestamp = generator.generateTimestamp(testDate);
-      
+
       // Extract time components from timestamp
       const timeMatch = timestamp.match(/T(\d{2}):(\d{2}):(\d{2})/);
       expect(timeMatch).toBeTruthy();
-      
+
       const [, hours, minutes, seconds] = timeMatch!;
       const timestampHours = parseInt(hours, 10);
       const timestampMinutes = parseInt(minutes, 10);
       const timestampSeconds = parseInt(seconds, 10);
-      
+
       // The timestamp should show local time, not UTC.
       // Since testDate is 08:21:08 UTC, local values come from Date local getters.
       const localHours = testDate.getHours();
       const localMinutes = testDate.getMinutes();
       const localSeconds = testDate.getSeconds();
-      
+
       expect(timestampHours).toBe(localHours);
       expect(timestampMinutes).toBe(localMinutes);
       expect(timestampSeconds).toBe(localSeconds);
