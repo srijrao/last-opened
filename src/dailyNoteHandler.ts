@@ -169,7 +169,12 @@ export class DailyNoteHandler {
 	}
 
 	private getDailyNotesPlugin(): unknown {
-		const internalPlugins = (this.app as App & { internalPlugins?: any }).internalPlugins;
+		const internalPlugins = (this.app as App & {
+			internalPlugins?: {
+				getPluginById?: (id: string) => unknown;
+				plugins?: Record<string, unknown>;
+			};
+		}).internalPlugins;
 		if (!internalPlugins) {
 			return null;
 		}

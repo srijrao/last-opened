@@ -21,7 +21,7 @@ Track open/close timestamps in note frontmatter, manage UID properties, and run 
 
 ### From within Obsidian
 
-1. Open Settings → Community plugins
+1. Open Settings -> Community plugins
 2. Disable Safe mode
 3. Click Browse community plugins
 4. Search for "Last Opened"
@@ -34,7 +34,7 @@ Track open/close timestamps in note frontmatter, manage UID properties, and run 
 2. Create a folder named `last-opened` in your vault's `.obsidian/plugins/` directory
 3. Copy both files into the folder
 4. Reload Obsidian
-5. Enable the plugin in Settings → Community plugins
+5. Enable the plugin in Settings -> Community plugins
 
 ## Configuration
 

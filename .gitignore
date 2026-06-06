@@ -78,7 +78,7 @@ temp/
 *.temp
 
 # Project-specific exclusions
-.github/*
+.github/copilot-instructions.md
 dev_log/**
 obsidianpluginattempt-aug2-mature/**
 test-output.txt

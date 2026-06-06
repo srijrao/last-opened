@@ -47,7 +47,7 @@ function formatDuplicateUidNotice(
 	const lines = [`Found ${groups.length} duplicate UID value(s) across ${duplicateFileCount} file(s):`];
 
 	for (const group of groups) {
-		lines.push(`UID \"${group.uid}\"`);
+		lines.push(`UID "${group.uid}"`);
 		for (const file of group.files) {
 			lines.push(`- ${file.path}`);
 		}

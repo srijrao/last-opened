@@ -116,7 +116,7 @@ describe('UidHandler', () => {
         txtFile.extension = 'txt';
         folder.children = [mdFile, txtFile];
 
-        let processed: string[] = [];
+        const processed: string[] = [];
         app.fileManager.processFrontMatter = jest.fn().mockImplementation(async (file: TFile, cb: (fm: Record<string, unknown>) => void) => {
             processed.push(file.path);
             cb({});
