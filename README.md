@@ -13,6 +13,7 @@ Track open/close timestamps in note frontmatter, manage UID properties, and run 
 - Automatic `types.json` registration for tracked datetime properties.
 - UID generation tools for the current note and current folder.
 - Duplicate UID scanner across all markdown files in the vault.
+- Daily-note append commands for highlighted text and wikilinks to the active note.
 - File Explorer context-menu actions to convert file extensions (`.md`, `.txt`, and custom extension mapping).
 - Folder operations support recursion modes: not recursive, fully recursive, ask each time, or depth-limited.
 
@@ -59,6 +60,16 @@ Open Obsidian Settings -> Community plugins -> Last Opened.
 - Last view key (default: `last_view`)
 - Last unfocus key (default: `last_unfocus`)
 - History depth slider (`1-5`)
+- Show notifications toggle
+
+### Daily note options
+
+- Append source:
+  - `Textbox format` uses the append text format setting.
+  - `Template note in templates folder` reads a template note and inserts content into its placeholder.
+- Append text format (default: `{{text}}`)
+- Template note path (default: `templates/Append Template`)
+- Both `{{text}}` and `{text}` placeholders are replaced with the highlighted text or wikilink.
 
 ### UID options
 
@@ -91,11 +102,13 @@ Command palette commands:
 1. Add last-opened and last-closed keys
 2. Add only last-opened key
 3. Add only last-closed key
-4. Add unique ID to YAML if not present
-5. Add/Replace unique ID to YAML
-6. Add unique ID to YAML if not present to folder
-7. Add/Replace unique ID to YAML to folder
-8. Find files with duplicate unique IDs
+4. Append highlighted text to current day's daily note
+5. Append wikilink to current day's daily note
+6. Add unique ID to YAML if not present
+7. Add/Replace unique ID to YAML
+8. Add unique ID to YAML if not present to folder
+9. Add/Replace unique ID to YAML to folder
+10. Find files with duplicate unique IDs
 
 File Explorer context-menu actions:
 
@@ -147,6 +160,7 @@ last_closed_history: 2
 - Newly closed files get close timestamps.
 - On app close (`beforeunload`), close timestamps are attempted for remaining tracked open files.
 - The add-key commands can use the recorded opening time so `last_opened` reflects when the file actually opened, not only when the command is executed.
+- Daily-note append commands use Obsidian's Daily Notes settings to find or create today's note before appending text.
 
 ## Development
 
@@ -223,6 +237,7 @@ Core modules:
 - `fileHandler.ts`: frontmatter updates and `types.json` registration
 - `eventHandler.ts`: workspace and app lifecycle event handling
 - `commands.ts`: command palette command registration
+- `dailyNoteHandler.ts`: Daily Notes lookup, creation, and append formatting
 - `uidHandler.ts`: UID generation, folder updates, duplicate scan
 - `extensionHandler.ts`: file/folder extension conversion
 - `contextMenus.ts`: file explorer menu actions

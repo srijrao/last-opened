@@ -12,6 +12,29 @@ import { Plugin, Notice, TFolder } from 'obsidian';
 import LastOpenedPlugin from './main';
 import { FileHandler } from './fileHandler';
 import { UidHandler } from './uidHandler';
+import { DailyNoteHandler } from './dailyNoteHandler';
+import { LastOpenedSettings } from './settings';
+
+function shouldShowNotifications(settings?: Partial<LastOpenedSettings>): boolean {
+	return settings?.showNotifications !== false;
+}
+
+function showPluginNotice(
+	settings: Partial<LastOpenedSettings> | undefined,
+	message: string,
+	timeout?: number
+): void {
+	if (!shouldShowNotifications(settings)) {
+		return;
+	}
+
+	if (typeof timeout === 'number') {
+		new Notice(message, timeout);
+		return;
+	}
+
+	new Notice(message);
+}
 
 function formatUidFolderSummary(action: string, modifiedFiles: number, totalFiles: number): string {
 	return `${action} ${modifiedFiles} of ${totalFiles} file(s)`;
@@ -41,6 +64,7 @@ export class CommandRegistry {
 	constructor(
 		private plugin: LastOpenedPlugin,
 		private fileHandler: FileHandler,
+		private dailyNoteHandler: DailyNoteHandler,
 		private uidHandler: UidHandler
 	) { }
 
@@ -50,7 +74,26 @@ export class CommandRegistry {
 	 */
 	registerCommands(): void {
 		this.registerAddKeysCommands();
+		this.registerDailyNoteCommands();
 		this.registerUidCommands();
+	}
+
+	private registerDailyNoteCommands(): void {
+		this.plugin.addCommand({
+			id: 'last-opened-daily-note-append-selection',
+			name: 'Append highlighted text to current day\'s daily note',
+			callback: async () => {
+				await this.appendHighlightedTextToDailyNote();
+			}
+		});
+
+		this.plugin.addCommand({
+			id: 'last-opened-daily-note-append-link',
+			name: 'Append wikilink to current day\'s daily note',
+			callback: async () => {
+				await this.appendActiveNoteLinkToDailyNote();
+			}
+		});
 	}
 
 	private registerUidCommands(): void {
@@ -145,7 +188,7 @@ export class CommandRegistry {
 		const activeFile = this.plugin.app.workspace.getActiveFile();
 
 		if (!activeFile) {
-			new Notice('No note is currently open. Please open a note first.');
+			showPluginNotice(this.plugin.settings, 'No note is currently open. Please open a note first.');
 			return;
 		}
 
@@ -168,10 +211,11 @@ export class CommandRegistry {
 						? openedKey
 						: closedKey;
 
-			new Notice(`✓ Added ${keyNames} to the note's frontmatter`);
+			showPluginNotice(this.plugin.settings, `✓ Added ${keyNames} to the note's frontmatter`);
 		} catch (error) {
 			console.error('Error adding keys to note:', error);
-			new Notice(
+			showPluginNotice(
+				this.plugin.settings,
 				'✗ Failed to add keys. Please check the console for details.'
 			);
 		}
@@ -180,7 +224,7 @@ export class CommandRegistry {
 	private async addUidToCurrentNote(replace: boolean): Promise<void> {
 		const activeFile = this.plugin.app.workspace.getActiveFile();
 		if (!activeFile) {
-			new Notice('No note is currently open. Please open a note first.');
+			showPluginNotice(this.plugin.settings, 'No note is currently open. Please open a note first.');
 			return;
 		}
 
@@ -196,9 +240,10 @@ export class CommandRegistry {
 
 			if (showNotice) {
 				if (replace) {
-					new Notice('✓ Added/Replaced unique ID in frontmatter');
+					showPluginNotice(this.plugin.settings, '✓ Added/Replaced unique ID in frontmatter');
 				} else {
-					new Notice(
+					showPluginNotice(
+						this.plugin.settings,
 						updated
 							? '✓ Added unique ID in frontmatter'
 							: 'UID key already has a value, nothing changed',
@@ -209,7 +254,7 @@ export class CommandRegistry {
 		} catch (error) {
 			console.error('Error adding UID to note:', error);
 			if (showNotice) {
-				new Notice('✗ Failed to add unique ID. Please check the console for details.');
+				showPluginNotice(this.plugin.settings, '✗ Failed to add unique ID. Please check the console for details.');
 			}
 		}
 	}
@@ -218,7 +263,7 @@ export class CommandRegistry {
 		const activeFile = this.plugin.app.workspace.getActiveFile();
 
 		if (!activeFile || !activeFile.parent || !(activeFile.parent instanceof TFolder)) {
-			new Notice('No folder context found. Open a note inside a folder first.');
+			showPluginNotice(this.plugin.settings, 'No folder context found. Open a note inside a folder first.');
 			return;
 		}
 
@@ -227,14 +272,47 @@ export class CommandRegistry {
 				? await this.uidHandler.addOrReplaceUidToFolder(activeFile.parent)
 				: await this.uidHandler.addUidIfAbsentToFolder(activeFile.parent);
 
-			new Notice(
+			showPluginNotice(
+				this.plugin.settings,
 				replace
 					? formatUidFolderSummary('Replaced UIDs in', result.modifiedFiles, result.totalFiles)
 					: formatUidFolderSummary('Added UIDs to', result.modifiedFiles, result.totalFiles)
 			);
 		} catch (error) {
 			console.error('Error adding UID to folder:', error);
-			new Notice('✗ Failed to update folder UID values. Please check the console for details.');
+			showPluginNotice(this.plugin.settings, '✗ Failed to update folder UID values. Please check the console for details.');
+		}
+	}
+
+	private async appendHighlightedTextToDailyNote(): Promise<void> {
+		try {
+			const result = await this.dailyNoteHandler.appendHighlightedTextToDailyNote();
+
+			if (!result) {
+				showPluginNotice(this.plugin.settings, 'No text is highlighted in the active note.');
+				return;
+			}
+
+			showPluginNotice(this.plugin.settings, '✓ Appended highlighted text to today\'s daily note');
+		} catch (error) {
+			console.error('Error appending highlighted text to daily note:', error);
+			showPluginNotice(this.plugin.settings, '✗ Failed to append highlighted text to the daily note. Please check the console for details.');
+		}
+	}
+
+	private async appendActiveNoteLinkToDailyNote(): Promise<void> {
+		const activeFile = this.plugin.app.workspace.getActiveFile();
+		if (!activeFile) {
+			showPluginNotice(this.plugin.settings, 'No note is currently open. Please open a note first.');
+			return;
+		}
+
+		try {
+			await this.dailyNoteHandler.appendCurrentNoteLinkToDailyNote(activeFile);
+			showPluginNotice(this.plugin.settings, '✓ Appended a wikilink to today\'s daily note');
+		} catch (error) {
+			console.error('Error appending note link to daily note:', error);
+			showPluginNotice(this.plugin.settings, '✗ Failed to append the wikilink to the daily note. Please check the console for details.');
 		}
 	}
 
@@ -243,16 +321,16 @@ export class CommandRegistry {
 			const groups = await this.uidHandler.findDuplicateUids();
 
 			if (groups.length === 0) {
-				new Notice('No duplicate UIDs found.');
+				showPluginNotice(this.plugin.settings, 'No duplicate UIDs found.');
 				return;
 			}
 
 			const message = formatDuplicateUidNotice(groups);
 			console.warn(message);
-			new Notice(message);
+			showPluginNotice(this.plugin.settings, message);
 		} catch (error) {
 			console.error('Error finding duplicate UIDs:', error);
-			new Notice('✗ Failed to scan for duplicate UIDs. Please check the console for details.');
+			showPluginNotice(this.plugin.settings, '✗ Failed to scan for duplicate UIDs. Please check the console for details.');
 		}
 	}
 }
@@ -270,7 +348,8 @@ export function setupCommands(
 	fileHandler: FileHandler,
 	uidHandler: UidHandler
 ): CommandRegistry {
-	const registry = new CommandRegistry(plugin, fileHandler, uidHandler);
+	const dailyNoteHandler = new DailyNoteHandler(plugin.app, plugin.settings);
+	const registry = new CommandRegistry(plugin, fileHandler, dailyNoteHandler, uidHandler);
 	registry.registerCommands();
 	return registry;
 }

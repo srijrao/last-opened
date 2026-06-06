@@ -76,6 +76,18 @@ export interface LastOpenedSettings {
 
 	/** Show notice when UID is added or replaced */
 	showUidNotice?: boolean;
+
+	/** Display toast notifications from this plugin */
+	showNotifications: boolean;
+
+	/** Source for content appended to daily notes */
+	dailyNoteAppendSource: 'text' | 'template';
+
+	/** Text format used when appending highlighted text or wikilinks to daily notes */
+	dailyNoteAppendFormat: string;
+
+	/** Template note path used when dailyNoteAppendSource is template */
+	dailyNoteTemplatePath: string;
 }
 
 type YamlKeySetting =
@@ -139,8 +151,12 @@ export const DEFAULT_SETTINGS: LastOpenedSettings = {
 	showRecursionDepthInAsk: false,
 	trackFocusChanges: false,
 	lastViewKey: 'last_view',
-	lastUnfocusKey: 'last_unfocus'
-	, showUidNotice: true
+	lastUnfocusKey: 'last_unfocus',
+	showUidNotice: true,
+	showNotifications: true,
+	dailyNoteAppendSource: 'text',
+	dailyNoteAppendFormat: '{{text}}',
+	dailyNoteTemplatePath: 'templates/Append Template'
 };
 
 /**
@@ -176,7 +192,11 @@ export function validateSettings(settings: unknown): boolean {
 		'showRecursionDepthInAsk',
 		'trackFocusChanges',
 		'lastViewKey',
-		'lastUnfocusKey'
+		'lastUnfocusKey',
+		'showNotifications',
+		'dailyNoteAppendSource',
+		'dailyNoteAppendFormat',
+		'dailyNoteTemplatePath'
 	];
 
 	if (!requiredKeys.every(key => key in settings)) {
@@ -207,6 +227,21 @@ export function validateSettings(settings: unknown): boolean {
 	}
 
 	if (typeof s.trackFocusChanges !== 'boolean') {
+		return false;
+	}
+
+	if (typeof s.showNotifications !== 'boolean') {
+		return false;
+	}
+
+	if (s.dailyNoteAppendSource !== 'text' && s.dailyNoteAppendSource !== 'template') {
+		return false;
+	}
+
+	if (
+		typeof s.dailyNoteAppendFormat !== 'string' ||
+		typeof s.dailyNoteTemplatePath !== 'string'
+	) {
 		return false;
 	}
 

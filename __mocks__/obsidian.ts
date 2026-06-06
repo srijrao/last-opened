@@ -29,7 +29,20 @@ export class Setting {
       setPlaceholder: (placeholder: string) => text,
       setValue: (value: string) => { currentValue = value; return text; },
       onChange: (cb: any) => { cb(currentValue); return text; },
+      setDisabled: (_disabled: boolean) => text,
       inputEl: { style: {}, title: '' }
+    };
+    callback(text);
+    return this;
+  }
+  addTextArea(callback: any) {
+    let currentValue = '';
+    const text = {
+      setPlaceholder: (placeholder: string) => text,
+      setValue: (value: string) => { currentValue = value; return text; },
+      onChange: (cb: any) => { cb(currentValue); return text; },
+      setDisabled: (_disabled: boolean) => text,
+      inputEl: { style: {}, title: '', rows: 0 }
     };
     callback(text);
     return this;
@@ -53,15 +66,37 @@ export class Setting {
     callback(toggle);
     return this;
   }
+  addSlider(callback: any) {
+    let currentValue = 0;
+    const slider = {
+      setLimits: (_min: number, _max: number, _step: number) => slider,
+      setValue: (value: number) => { currentValue = value; return slider; },
+      setDynamicTooltip: () => slider,
+      onChange: (cb: any) => { cb(currentValue); return slider; }
+    };
+    callback(slider);
+    return this;
+  }
+  addButton(callback: any) {
+    const button = {
+      setButtonText: (_text: string) => button,
+      setWarning: () => button,
+      onClick: (_cb: any) => button
+    };
+    callback(button);
+    return this;
+  }
 }
 
 export class TFile {
   path: string;
   extension: string;
+  basename: string;
   parent: TFolder | null;
   constructor() {
     this.path = '';
     this.extension = '';
+    this.basename = '';
     this.parent = null;
   }
 }
@@ -136,6 +171,7 @@ export class App {
       on: (event: string, callback: any) => { },
       onLayoutReady: (callback: any) => callback(),
       getActiveFile: () => null,
+      getActiveViewOfType: (_type: any) => null,
       iterateAllLeaves: (_callback: any) => { }
     };
     this.fileManager = {
@@ -145,5 +181,9 @@ export class App {
 }
 
 export class Notice {
-  constructor(message: string) { }
+  constructor(message: string, timeout?: number) { }
+}
+
+export class MarkdownView {
+  editor: any;
 }

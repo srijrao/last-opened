@@ -34,6 +34,10 @@ describe('Settings', () => {
       expect(DEFAULT_SETTINGS).toHaveProperty('lastViewKey');
       expect(DEFAULT_SETTINGS).toHaveProperty('lastUnfocusKey');
       expect(DEFAULT_SETTINGS).toHaveProperty('uidLength');
+      expect(DEFAULT_SETTINGS).toHaveProperty('showNotifications');
+      expect(DEFAULT_SETTINGS).toHaveProperty('dailyNoteAppendSource');
+      expect(DEFAULT_SETTINGS).toHaveProperty('dailyNoteAppendFormat');
+      expect(DEFAULT_SETTINGS).toHaveProperty('dailyNoteTemplatePath');
     });
 
     it('should have sensible default values', () => {
@@ -46,6 +50,10 @@ describe('Settings', () => {
       expect(DEFAULT_SETTINGS.trackFocusChanges).toBe(false);
       expect(DEFAULT_SETTINGS.lastViewKey).toBe('last_view');
       expect(DEFAULT_SETTINGS.lastUnfocusKey).toBe('last_unfocus');
+      expect(DEFAULT_SETTINGS.showNotifications).toBe(true);
+      expect(DEFAULT_SETTINGS.dailyNoteAppendSource).toBe('text');
+      expect(DEFAULT_SETTINGS.dailyNoteAppendFormat).toBe('{{text}}');
+      expect(DEFAULT_SETTINGS.dailyNoteTemplatePath).toBe('templates/Append Template');
     });
 
     it('should reject invalid UID length', () => {
@@ -57,6 +65,15 @@ describe('Settings', () => {
       const invalidSettings = {
         ...DEFAULT_SETTINGS,
         uidKey: DEFAULT_SETTINGS.dateOpenedKey
+      };
+
+      expect(validateSettings(invalidSettings)).toBe(false);
+    });
+
+    it('should reject invalid daily note append source', () => {
+      const invalidSettings = {
+        ...DEFAULT_SETTINGS,
+        dailyNoteAppendSource: 'clipboard'
       };
 
       expect(validateSettings(invalidSettings)).toBe(false);

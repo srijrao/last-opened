@@ -402,6 +402,71 @@ class LastOpenedSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
+		new Setting(containerEl)
+			.setName('Show Notifications')
+			.setDesc('Display toast notifications from this plugin')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.showNotifications)
+				.onChange(async (value) => {
+					this.plugin.settings.showNotifications = value;
+					await this.plugin.saveSettings();
+				}));
+
+		// Daily Notes section
+		containerEl.createEl('h3', { text: 'Daily Notes' });
+
+		let appendFormatText: { setDisabled: (disabled: boolean) => void } | null = null;
+		let templatePathText: { setDisabled: (disabled: boolean) => void } | null = null;
+		const syncDailyNoteInputState = () => {
+			const useTemplate = this.plugin.settings.dailyNoteAppendSource === 'template';
+			appendFormatText?.setDisabled(useTemplate);
+			templatePathText?.setDisabled(!useTemplate);
+		};
+
+		new Setting(containerEl)
+			.setName('Append Source')
+			.setDesc('Choose whether appended content comes from the textbox or a template note.')
+			.addDropdown(dropdown => dropdown
+				.addOption('text', 'Textbox format')
+				.addOption('template', 'Template note in templates folder')
+				.setValue(this.plugin.settings.dailyNoteAppendSource)
+				.onChange(async (value: 'text' | 'template') => {
+					this.plugin.settings.dailyNoteAppendSource = value;
+					await this.plugin.saveSettings();
+					syncDailyNoteInputState();
+				}));
+
+		new Setting(containerEl)
+			.setName('Append Text Format')
+			.setDesc('Used when Append Source is Textbox format. Insert {{text}} where the selected text or wikilink should go.')
+			.addTextArea(text => {
+				appendFormatText = text;
+				text
+					.setPlaceholder('Write one or more lines, using {{text}} where the inserted content should go.')
+					.setValue(this.plugin.settings.dailyNoteAppendFormat)
+					.onChange(async (value) => {
+						this.plugin.settings.dailyNoteAppendFormat = value.trim() || '{{text}}';
+						await this.plugin.saveSettings();
+					});
+				text.inputEl.rows = 3;
+				syncDailyNoteInputState();
+			});
+
+		new Setting(containerEl)
+			.setName('Template Note Path')
+			.setDesc('Used when Append Source is Template note in templates folder. Start with a placeholder path such as templates/Append Template.')
+			.addText(text => {
+				templatePathText = text;
+				text
+					.setPlaceholder('templates/Append Template')
+					.setValue(this.plugin.settings.dailyNoteTemplatePath)
+					.onChange(async (value) => {
+						this.plugin.settings.dailyNoteTemplatePath = value.trim();
+						await this.plugin.saveSettings();
+					});
+				syncDailyNoteInputState();
+			});
+
 		// Unique ID section
 		containerEl.createEl('h3', { text: 'Unique ID' });
 

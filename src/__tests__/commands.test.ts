@@ -2,6 +2,8 @@ import { CommandRegistry } from '../commands';
 import { FileHandler } from '../fileHandler';
 import { App, TFile, TFolder } from 'obsidian';
 import { UidHandler } from '../uidHandler';
+import { DailyNoteHandler } from '../dailyNoteHandler';
+import { DEFAULT_SETTINGS } from '../settings';
 
 // Mock Notice globally
 jest.mock('obsidian', () => ({
@@ -16,6 +18,7 @@ describe('CommandRegistry', () => {
   let mockActiveFile: TFile;
   let commandRegistry: CommandRegistry;
   let mockUidHandler: UidHandler;
+  let mockDailyNoteHandler: DailyNoteHandler;
 
   beforeEach(() => {
     // Clear Notice mock
@@ -24,6 +27,7 @@ describe('CommandRegistry', () => {
     // Mock active file
     mockActiveFile = new TFile();
     mockActiveFile.path = 'test.md';
+    mockActiveFile.basename = 'test';
     mockActiveFile.parent = new TFolder();
     (mockActiveFile.parent as unknown as { path: string }).path = 'notes';
 
@@ -36,6 +40,7 @@ describe('CommandRegistry', () => {
     // Mock plugin (avoid abstract class instantiation)
     mockPlugin = {
       app: mockApp,
+      settings: { ...DEFAULT_SETTINGS },
       addCommand: jest.fn()
     };
 
@@ -52,13 +57,24 @@ describe('CommandRegistry', () => {
       findDuplicateUids: jest.fn().mockResolvedValue([])
     } as any;
 
-    commandRegistry = new CommandRegistry(mockPlugin, mockFileHandler, mockUidHandler);
+    mockDailyNoteHandler = {
+      appendHighlightedTextToDailyNote: jest.fn().mockResolvedValue({
+        dailyNotePath: '__DN/2026-06-06.md',
+        appendedText: 'selected text'
+      }),
+      appendCurrentNoteLinkToDailyNote: jest.fn().mockResolvedValue({
+        dailyNotePath: '__DN/2026-06-06.md',
+        appendedText: '[[test]]'
+      })
+    } as any;
+
+    commandRegistry = new CommandRegistry(mockPlugin, mockFileHandler, mockDailyNoteHandler, mockUidHandler);
   });
 
-  it('should register eight commands on registerCommands', () => {
+  it('should register ten commands on registerCommands', () => {
     commandRegistry.registerCommands();
 
-    expect(mockPlugin.addCommand).toHaveBeenCalledTimes(8);
+    expect(mockPlugin.addCommand).toHaveBeenCalledTimes(10);
     expect(mockPlugin.addCommand).toHaveBeenCalledWith(
       expect.objectContaining({
         id: 'last-opened-add-both-keys',
@@ -81,6 +97,18 @@ describe('CommandRegistry', () => {
       expect.objectContaining({
         id: 'last-opened-uid-add-if-absent',
         name: 'Add unique ID to YAML if not present'
+      })
+    );
+    expect(mockPlugin.addCommand).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'last-opened-daily-note-append-selection',
+        name: 'Append highlighted text to current day\'s daily note'
+      })
+    );
+    expect(mockPlugin.addCommand).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'last-opened-daily-note-append-link',
+        name: 'Append wikilink to current day\'s daily note'
       })
     );
     expect(mockPlugin.addCommand).toHaveBeenCalledWith(
@@ -115,6 +143,28 @@ describe('CommandRegistry', () => {
     expect(mockFileHandler.addYAMLKeys).toHaveBeenCalledWith(mockActiveFile, 'closed');
 
     expect(Notice).toHaveBeenCalledWith('✓ Added keys to the note\'s frontmatter');
+  });
+
+  it('should append highlighted text to the daily note', async () => {
+    commandRegistry.registerCommands();
+    const appendSelectionCallback = (mockPlugin.addCommand as jest.Mock).mock.calls[3][0].callback;
+    const { Notice } = require('obsidian');
+
+    await appendSelectionCallback();
+
+    expect(mockDailyNoteHandler.appendHighlightedTextToDailyNote).toHaveBeenCalledTimes(1);
+    expect(Notice).toHaveBeenCalledWith('✓ Appended highlighted text to today\'s daily note');
+  });
+
+  it('should append active note link to the daily note', async () => {
+    commandRegistry.registerCommands();
+    const appendLinkCallback = (mockPlugin.addCommand as jest.Mock).mock.calls[4][0].callback;
+    const { Notice } = require('obsidian');
+
+    await appendLinkCallback();
+
+    expect(mockDailyNoteHandler.appendCurrentNoteLinkToDailyNote).toHaveBeenCalledWith(mockActiveFile);
+    expect(Notice).toHaveBeenCalledWith('✓ Appended a wikilink to today\'s daily note');
   });
 
   it('should show error notice when no active file', async () => {
@@ -157,7 +207,7 @@ describe('CommandRegistry', () => {
 
   it('should summarize folder UID updates for add-if-absent', async () => {
     commandRegistry.registerCommands();
-    const addUidFolderCallback = (mockPlugin.addCommand as jest.Mock).mock.calls[5][0].callback;
+    const addUidFolderCallback = (mockPlugin.addCommand as jest.Mock).mock.calls[7][0].callback;
     const { Notice } = require('obsidian');
 
     await addUidFolderCallback();
@@ -173,9 +223,9 @@ describe('CommandRegistry', () => {
         files: [{ path: 'notes/a.md' }, { path: 'notes/b.md' }]
       }
     ]);
-    commandRegistry = new CommandRegistry(mockPlugin, mockFileHandler, mockUidHandler);
+    commandRegistry = new CommandRegistry(mockPlugin, mockFileHandler, mockDailyNoteHandler, mockUidHandler);
     commandRegistry.registerCommands();
-    const duplicateCommandCallback = (mockPlugin.addCommand as jest.Mock).mock.calls[7][0].callback;
+    const duplicateCommandCallback = (mockPlugin.addCommand as jest.Mock).mock.calls[9][0].callback;
     const { Notice } = require('obsidian');
     const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => { });
 
