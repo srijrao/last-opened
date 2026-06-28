@@ -3,6 +3,7 @@
     "baseUrl": ".",
     "inlineSourceMap": true,
     "inlineSources": true,
+    "ignoreDeprecations": "6.0",
     "module": "ESNext",
     "target": "ES6",
     "allowJs": true,
@@ -11,7 +12,8 @@
     "esModuleInterop": true,
     "importHelpers": true,
     "isolatedModules": true,
-    "ignoreDeprecations": "6.0",
+    "rootDir": ".",
+    "types": ["node", "jest"],
     "strictNullChecks": true,
     "lib": ["DOM", "ES5", "ES6", "ES7"]
   },

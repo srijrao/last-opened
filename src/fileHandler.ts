@@ -312,7 +312,7 @@ export class FileHandler {
 				if (!typesData.types || typeof typesData.types !== 'object') {
 					typesData = { types: {} };
 				}
-			} catch (error) {
+			} catch {
 				// File doesn't exist or is invalid, create new structure
 				typesData = { types: {} };
 			}

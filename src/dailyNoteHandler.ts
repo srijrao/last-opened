@@ -163,7 +163,7 @@ export class DailyNoteHandler {
 			const content = await adapter.read(`${configDir}/daily-notes.json`);
 			const parsed = JSON.parse(content);
 			return parsed && typeof parsed === 'object' ? parsed : null;
-		} catch (_error) {
+		} catch {
 			return null;
 		}
 	}

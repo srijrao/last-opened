@@ -65,7 +65,7 @@ const YAML_KEY_LABELS: Record<YamlKeyField, string> = {
  */
 export default class LastOpenedPlugin extends Plugin {
 	/** Stores the current plugin settings */
-	settings: LastOpenedSettings;
+	settings!: LastOpenedSettings;
 
 	/** Event handler instance for managing file events */
 	private eventHandler: EventHandler | null = null;
@@ -314,8 +314,8 @@ class LastOpenedSettingTab extends PluginSettingTab {
 				.addOption('local-iso-offset', 'Local ISO 8601 with offset (2025-11-11T14:00:00-06:00)')
 				.addOption('utc-iso', 'UTC ISO (2025-11-11T20:00:00.000Z)')
 				.setValue(this.plugin.settings.timestampMode)
-				.onChange(async (value: 'local-iso-offset' | 'utc-iso') => {
-					this.plugin.settings.timestampMode = value;
+				.onChange(async (value) => {
+					this.plugin.settings.timestampMode = value as 'local-iso-offset' | 'utc-iso';
 					await this.plugin.saveSettings();
 				}));
 
@@ -430,8 +430,8 @@ class LastOpenedSettingTab extends PluginSettingTab {
 				.addOption('text', 'Textbox format')
 				.addOption('template', 'Template note in templates folder')
 				.setValue(this.plugin.settings.dailyNoteAppendSource)
-				.onChange(async (value: 'text' | 'template') => {
-					this.plugin.settings.dailyNoteAppendSource = value;
+				.onChange(async (value) => {
+					this.plugin.settings.dailyNoteAppendSource = value as 'text' | 'template';
 					await this.plugin.saveSettings();
 					syncDailyNoteInputState();
 				}));
@@ -539,8 +539,8 @@ class LastOpenedSettingTab extends PluginSettingTab {
 				.addOption('ask', 'Ask each time')
 				.addOption('depth', 'Recursive to X level')
 				.setValue(this.plugin.settings.folderRecursion)
-				.onChange(async (value: 'not-recursive' | 'fully-recursive' | 'ask' | 'depth') => {
-					this.plugin.settings.folderRecursion = value;
+				.onChange(async (value) => {
+					this.plugin.settings.folderRecursion = value as 'not-recursive' | 'fully-recursive' | 'ask' | 'depth';
 					await this.plugin.saveSettings();
 				}));
 
